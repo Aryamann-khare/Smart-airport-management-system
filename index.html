@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AAI AeroPulse OS - Indira Gandhi International Airport (DEL)</title>
+  <meta name="description" content="Airport Authority of India (AAI) Smart Airport Operations Management System for Indira Gandhi International Airport (DEL), New Delhi." />
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js & QRCode libs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+
+  <!-- React & Babel Standalone for browser execution -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* AAI AeroPulse OS - Glassmorphism CSS Design System */
+    :root {
+      --bg-dark: #07090e;
+      --bg-card: rgba(16, 22, 34, 0.78);
+      --bg-card-hover: rgba(24, 32, 49, 0.88);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(0, 242, 254, 0.3);
+
+      --accent-cyan: #00f2fe;
+      --accent-blue: #4facfe;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #8b5cf6;
+
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+
+      --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-heading: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+
+      --shadow-glow: 0 0 25px rgba(0, 242, 254, 0.15);
+      --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: var(--font-main);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 242, 254, 0.06) 0%, transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.06) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.03) 0%, transparent 65%);
+      background-attachment: fixed;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(7, 9, 14, 0.8); }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
+
+    h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); letter-spacing: -0.02em; }
+
+    .app-container { display: flex; flex-direction: column; min-height: 100vh; }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem; background: rgba(11, 15, 25, 0.88);
+      backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color);
+      position: sticky; top: 0; z-index: 100;
+    }
+
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-icon {
+      width: 44px; height: 44px; border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      display: flex; align-items: center; justify-content: center;
+      color: #000; font-weight: 900; font-size: 1.4rem;
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+    }
+
+    .brand-title {
+      font-size: 1.4rem; font-weight: 800;
+      background: linear-gradient(135deg, #ffffff 30%, var(--accent-cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle { font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    .topbar-actions { display: flex; align-items: center; gap: 1.5rem; }
+
+    .live-ticker {
+      display: flex; align-items: center; gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color);
+      padding: 0.5rem 1rem; border-radius: var(--radius-full);
+      font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-cyan);
+    }
+
+    .pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%; background-color: var(--accent-emerald);
+      box-shadow: 0 0 10px var(--accent-emerald); animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .nav-tabs {
+      display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 2rem;
+      background: rgba(16, 22, 34, 0.6); border-bottom: 1px solid var(--border-color);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.2rem;
+      background: transparent; border: 1px solid transparent; border-radius: var(--radius-md);
+      color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      transition: all 0.25s ease; white-space: nowrap;
+    }
+
+    .tab-btn:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.05); }
+
+    .tab-btn.active {
+      color: #fff; background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(79, 172, 254, 0.1));
+      border-color: rgba(0, 242, 254, 0.4); box-shadow: var(--shadow-glow);
+    }
+
+    .main-content { flex: 1; padding: 2rem; max-width: 1600px; width: 100%; margin: 0 auto; }
+
+    .glass-card {
+      background: var(--bg-card); backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color); border-radius: var(--radius-lg);
+      padding: 1.5rem; box-shadow: var(--shadow-card);
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .glass-card:hover { border-color: rgba(255, 255, 255, 0.18); }
+
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .card-title { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 0.6rem 1.2rem; border-radius: var(--radius-md); font-size: 0.875rem;
+      font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: none; outline: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      color: #050b14; box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 242, 254, 0.45); }
+
+    .btn-secondary { background: rgba(255, 255, 255, 0.08); color: var(--text-primary); border: 1px solid var(--border-color); }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.2); }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #f43f5e, #e11d48); color: #fff;
+      box-shadow: 0 4px 15px rgba(244, 63, 94, 0.3);
+    }
+    .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(244, 63, 94, 0.5); }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+
+    .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-danger { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3); }
+    .badge-info { background: rgba(0, 242, 254, 0.15); color: var(--accent-cyan); border: 1px solid rgba(0, 242, 254, 0.3); }
+    .badge-purple { background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); border: 1px solid rgba(139, 92, 246, 0.3); }
+
+    .table-container { width: 100%; overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--border-color); }
+    .custom-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+    .custom-table th {
+      background: rgba(255, 255, 255, 0.03); padding: 1rem; font-weight: 700;
+      color: var(--text-secondary); border-bottom: 1px solid var(--border-color);
+      text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;
+    }
+    .custom-table td { padding: 1rem; border-bottom: 1px solid var(--border-color); color: var(--text-primary); vertical-align: middle; }
+    .custom-table tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+    .form-input, .form-select {
+      width: 100%; padding: 0.65rem 1rem; background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color); border-radius: var(--radius-md);
+      color: var(--text-primary); font-family: var(--font-main); font-size: 0.9rem;
+      outline: none; transition: border-color 0.2s ease;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--accent-cyan); box-shadow: 0 0 10px rgba(0, 242, 254, 0.2); }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+
+    @media (max-width: 1024px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) { .grid-2, .grid-4 { grid-template-columns: 1fr; } .topbar { flex-direction: column; gap: 1rem; align-items: flex-start; } }
+
+    .emergency-banner {
+      background: linear-gradient(90deg, rgba(244, 63, 94, 0.9), rgba(225, 29, 72, 0.9));
+      color: #fff; padding: 0.75rem 2rem; display: flex; align-items: center; justify-content: space-between;
+      font-weight: 700; box-shadow: 0 4px 20px rgba(244, 63, 94, 0.4);
+    }
+
+    .kpi-card {
+      display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem;
+      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg);
+    }
+    .kpi-val { font-size: 2rem; font-weight: 800; font-family: var(--font-heading); color: var(--text-primary); margin-top: 0.25rem; }
+    .kpi-icon { width: 50px; height: 50px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.05); color: var(--accent-cyan); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- AIRPORT AUTHORITY OF INDIA (AAI) & DELHI AIRPORT (DEL) DATASET ---
+    const INITIAL_FLIGHTS = [
+      { id: "FL-DEL-101", flightNumber: "AI-101", airline: "Air India", type: "Departure", destination: "London Heathrow (LHR)", origin: "Delhi (DEL)", scheduledTime: "02:15", estimatedTime: "02:15", terminal: "Terminal 3", gate: "T3-Gate 42", status: "Boarding", passengersCount: 324, maxCapacity: 342, baggageCount: 410, aircraft: "Boeing 787-9 Dreamliner", aiDelayRisk: 14, delayReason: null, weatherContext: "Haze, Vis 2500m, Wind 06kts E", boardingProgress: 285 },
+      { id: "FL-DEL-102", flightNumber: "6E-2015", airline: "IndiGo", type: "Departure", destination: "Mumbai (BOM)", origin: "Delhi (DEL)", scheduledTime: "06:30", estimatedTime: "07:15", terminal: "Terminal 1", gate: "T1-Gate 05", status: "Delayed", passengersCount: 180, maxCapacity: 186, baggageCount: 195, aircraft: "Airbus A320neo", aiDelayRisk: 82, delayReason: "Morning Fog CAT-III Standby & Runway Hold Queue", weatherContext: "Dense Fog, Vis 150m (CAT-III Low Visibility Protocol)", boardingProgress: 0 },
+      { id: "FL-DEL-103", flightNumber: "UK-811", airline: "Vistara (Air India)", type: "Departure", destination: "Bengaluru (BLR)", origin: "Delhi (DEL)", scheduledTime: "08:00", estimatedTime: "08:00", terminal: "Terminal 3", gate: "T3-Gate 32", status: "On Time", passengersCount: 162, maxCapacity: 164, baggageCount: 178, aircraft: "Airbus A321neo", aiDelayRisk: 22, delayReason: null, weatherContext: "Scattered Haze", boardingProgress: 45 },
+      { id: "FL-DEL-104", flightNumber: "EK-513", airline: "Emirates", type: "Arrival", destination: "Delhi (DEL)", origin: "Dubai (DXB)", scheduledTime: "09:20", estimatedTime: "09:20", terminal: "Terminal 3", gate: "T3-Gate 45", status: "Landed", passengersCount: 490, maxCapacity: 517, baggageCount: 620, aircraft: "Airbus A380-800", aiDelayRisk: 8, delayReason: null, weatherContext: "Clear Sky", boardingProgress: 490 },
+      { id: "FL-DEL-105", flightNumber: "QP-1102", airline: "Akasa Air", type: "Departure", destination: "Ahmedabad (AMD)", origin: "Delhi (DEL)", scheduledTime: "10:15", estimatedTime: "10:15", terminal: "Terminal 2", gate: "T2-Gate 14", status: "On Time", passengersCount: 172, maxCapacity: 189, baggageCount: 180, aircraft: "Boeing 737 MAX 8", aiDelayRisk: 18, delayReason: null, weatherContext: "Clear", boardingProgress: 0 },
+      { id: "FL-DEL-106", flightNumber: "SG-8191", airline: "SpiceJet", type: "Departure", destination: "Goa Mopa (GOX)", origin: "Delhi (DEL)", scheduledTime: "11:45", estimatedTime: "12:30", terminal: "Terminal 1", gate: "T1-Gate 02", status: "Delayed", passengersCount: 182, maxCapacity: 189, baggageCount: 205, aircraft: "Boeing 737-800", aiDelayRisk: 76, delayReason: "Late Inbound Turnaround & Apron Refueling Slot", weatherContext: "Crosswind 14kts", boardingProgress: 0 },
+      { id: "FL-DEL-107", flightNumber: "SQ-403", airline: "Singapore Airlines", type: "Departure", destination: "Singapore (SIN)", origin: "Delhi (DEL)", scheduledTime: "21:55", estimatedTime: "21:55", terminal: "Terminal 3", gate: "T3-Gate 40", status: "On Time", passengersCount: 295, maxCapacity: 303, baggageCount: 380, aircraft: "Airbus A350-900", aiDelayRisk: 12, delayReason: null, weatherContext: "Clear Sky", boardingProgress: 0 }
+    ];
+
+    const INITIAL_GATES = [
+      { id: "T1-Gate 01", terminal: "Terminal 1", status: "Available", assignedFlight: null, size: "Narrowbody (A320/B737)" },
+      { id: "T1-Gate 02", terminal: "Terminal 1", status: "Occupied", assignedFlight: "SG-8191", size: "Narrowbody (A320/B737)" },
+      { id: "T1-Gate 05", terminal: "Terminal 1", status: "Occupied", assignedFlight: "6E-2015", size: "Narrowbody (A320/B737)" },
+      { id: "T2-Gate 10", terminal: "Terminal 2", status: "Available", assignedFlight: null, size: "Narrowbody (A320/B737)" },
+      { id: "T2-Gate 14", terminal: "Terminal 2", status: "Occupied", assignedFlight: "QP-1102", size: "Narrowbody (A320/B737)" },
+      { id: "T3-Gate 32", terminal: "Terminal 3", status: "Occupied", assignedFlight: "UK-811", size: "Narrowbody / Widebody" },
+      { id: "T3-Gate 40", terminal: "Terminal 3", status: "Occupied", assignedFlight: "SQ-403", size: "Widebody (A350/B777)" },
+      { id: "T3-Gate 42", terminal: "Terminal 3", status: "Occupied", assignedFlight: "AI-101", size: "Widebody (B787/B777)" },
+      { id: "T3-Gate 45", terminal: "Terminal 3", status: "Occupied", assignedFlight: "EK-513", size: "Heavy CODE-F (A380)" },
+      { id: "T3-Gate 48", terminal: "Terminal 3", status: "Available", assignedFlight: null, size: "Widebody (B787/B777)" }
+    ];
+
+    const INITIAL_STAFF = [
+      { id: "AAI-DEL-101", name: "Inspector Rajesh Kumar", role: "CISF Security Lead", team: "CISF Aviation Security Group (ASG)", shiftStatus: "On Duty", location: "T3 Departure DigiYatra Zone", assignedTask: "Biometric Screening & Terminal Patrol" },
+      { id: "AAI-DEL-102", name: "Vikram Sharma", role: "AAI ATC Manager", team: "AAI Air Traffic Control Tower (VIDP)", shiftStatus: "On Duty", location: "DEL ATC Tower Level 8", assignedTask: "Runway 29L Departure Sequencing" },
+      { id: "AAI-DEL-103", name: "Sunita Patel", role: "Celebi Ground Handler", team: "Celebi Ground Handling Logistics", shiftStatus: "On Duty", location: "T3 Baggage Belt 08", assignedTask: "Air India AI-101 Container Loading" },
+      { id: "AAI-DEL-104", name: "Amit Verma", role: "Avionics Engineer", team: "Air India Engineering Services (AIESL)", shiftStatus: "On Duty", location: "T3 Gate 42", assignedTask: "B787 Pre-flight Avionics Audit" },
+      { id: "AAI-DEL-105", name: "Meera Nair", role: "Customs Officer", team: "Bureau of Immigration (BOI India)", shiftStatus: "On Duty", location: "T3 International Departure", assignedTask: "Passport Clearance Control" }
+    ];
+
+    const INITIAL_PASSENGERS = [
+      { pnr: "PNR-DEL-9081", name: "Rajeshwar Singhania", flightNumber: "AI-101", seat: "03A", class: "First / Business", baggageCount: 2, status: "Boarded", tagId: "TAG-AAI-DEL-90812" },
+      { pnr: "PNR-DEL-4412", name: "Priya Sharma", flightNumber: "6E-2015", seat: "12C", class: "Economy", baggageCount: 1, status: "Security Cleared", tagId: "TAG-AAI-DEL-44102" },
+      { pnr: "PNR-DEL-8820", name: "Vikramaditya Rao", flightNumber: "UK-811", seat: "08D", class: "Premium Economy", baggageCount: 2, status: "Checked-In", tagId: "TAG-AAI-DEL-88200" },
+      { pnr: "PNR-DEL-3391", name: "Ananya Iyer", flightNumber: "AI-101", seat: "24K", class: "Economy", baggageCount: 1, status: "Boarded", tagId: "TAG-AAI-DEL-33910" }
+    ];
+
+    const INITIAL_BAGGAGE = [
+      {
+        tagId: "TAG-AAI-DEL-90812", pnr: "PNR-DEL-9081", passengerName: "Rajeshwar Singhania", flightNumber: "AI-101", weightKg: 24.5, currentStep: "Aircraft Hold (T3 Gate 42)", status: "Loaded", batteryPct: 96, tempC: 19.4, shockG: 0.1,
+        locationHistory: [
+          { step: "Check-in Counter AI-12 (T3)", time: "00:15", verified: true },
+          { step: "CISF Inline X-Ray Screening B", time: "00:35", verified: true },
+          { step: "Celebi Automated BHS Carousel 4", time: "01:05", verified: true },
+          { step: "Aircraft Cargo Bay (AI-101)", time: "01:45", verified: true }
+        ]
+      },
+      {
+        tagId: "TAG-AAI-DEL-44102", pnr: "PNR-DEL-4412", passengerName: "Priya Sharma", flightNumber: "6E-2015", weightKg: 14.8, currentStep: "Inline BHS Sorting (T1)", status: "Normal", batteryPct: 91, tempC: 22.1, shockG: 0.3,
+        locationHistory: [
+          { step: "DigiYatra Express Drop Counter T1", time: "05:15", verified: true },
+          { step: "CISF High-Speed Baggage Scanner", time: "05:35", verified: true },
+          { step: "Staging Area T1 Gate 05", time: "06:10", verified: true }
+        ]
+      },
+      {
+        tagId: "TAG-AAI-DEL-88200", pnr: "PNR-DEL-8820", passengerName: "Vikramaditya Rao", flightNumber: "UK-811", weightKg: 21.0, currentStep: "Rerouted / Manual Audit", status: "Misplaced Alert", batteryPct: 78, tempC: 25.2, shockG: 2.4,
+        locationHistory: [
+          { step: "Vistara Check-in Counter Island F (T3)", time: "06:30", verified: true },
+          { step: "CISF Security Clearance Node", time: "06:50", verified: true },
+          { step: "Celebi Transfer Loop 9 (Mismatch MUX)", time: "07:25", verified: false }
+        ]
+      }
+    ];
+
+    const INITIAL_ALERTS = [
+      { id: "ALERT-AAI-DEL-01", severity: "Code Yellow", title: "CAT-III B Winter Fog Low Visibility Protocol", message: "RVR (Runway Visual Range) on Runway 28/10 dropped below 150m. AAI Air Traffic Control has activated Low Visibility Procedures (LVP) for all departing & arriving flights.", timestamp: "06:15:00", affectedTerminals: ["Terminal 1", "Terminal 2", "Terminal 3"], actionRequired: "Enforce CAT-III ILS guidance separation for all non-certified aircraft." }
+    ];
+
+    // --- MAIN APP COMPONENT ---
+    function App() {
+      const [activeTab, setActiveTab] = useState('flights');
+      const [flights, setFlights] = useState(INITIAL_FLIGHTS);
+      const [gates, setGates] = useState(INITIAL_GATES);
+      const [staff, setStaff] = useState(INITIAL_STAFF);
+      const [passengers, setPassengers] = useState(INITIAL_PASSENGERS);
+      const [baggage, setBaggage] = useState(INITIAL_BAGGAGE);
+      const [alerts, setAlerts] = useState(INITIAL_ALERTS);
+
+      const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
+
+      useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
+        return () => clearInterval(timer);
+      }, []);
+
+      const activeEmergency = alerts.length > 0 ? alerts[0] : null;
+
+      return (
+        <div className="app-container">
+          {/* Emergency Alert Banner */}
+          {activeEmergency && (
+            <div className="emergency-banner">
+              <div>⚠️ AIRPORT AUTHORITY OF INDIA ADVISORY ({activeEmergency.severity}): {activeEmergency.title} — {activeEmergency.message}</div>
+              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }} onClick={() => setActiveTab('emergency')}>
+                AAI Command Center
+              </button>
+            </div>
+          )}
+
+          {/* Header */}
+          <header className="topbar">
+            <div className="brand">
+              <div className="brand-icon">🇮🇳</div>
+              <div>
+                <div className="brand-title">AAI AeroPulse OS</div>
+                <div className="brand-subtitle">Airport Authority of India • Delhi Int'l Airport (DEL)</div>
+              </div>
+            </div>
+            <div className="topbar-actions">
+              <div className="live-ticker">
+                <div className="pulse-dot"></div>
+                <span>VIDP / DEL AIRPORT • {currentTime} IST</span>
+              </div>
+              <span className="badge badge-success">AAI CAT-III Systems Active</span>
+            </div>
+          </header>
+
+          {/* Tabs */}
+          <nav className="nav-tabs">
+            <button className={`tab-btn ${activeTab==='flights'?'active':''}`} onClick={()=>setActiveTab('flights')}>✈ Flight Schedule (FIDS)</button>
+            <button className={`tab-btn ${activeTab==='passenger'?'active':''}`} onClick={()=>setActiveTab('passenger')}>🧳 Passenger DigiYatra Portal</button>
+            <button className={`tab-btn ${activeTab==='gates'?'active':''}`} onClick={()=>setActiveTab('gates')}>🚪 Gate Matrix</button>
+            <button className={`tab-btn ${activeTab==='staff'?'active':''}`} onClick={()=>setActiveTab('staff')}>👨‍✈️ CISF & Staff Roster</button>
+            <button className={`tab-btn ${activeTab==='emergency'?'active':''}`} onClick={()=>setActiveTab('emergency')}>🚨 AAI Alerts ({alerts.length})</button>
+            <button className={`tab-btn ${activeTab==='analytics'?'active':''}`} onClick={()=>setActiveTab('analytics')}>📊 DEL Real-Time Analytics</button>
+            <button className={`tab-btn ${activeTab==='ai'?'active':''}`} onClick={()=>setActiveTab('ai')}>🧠 AI Fog & Delay Predictor</button>
+            <button className={`tab-btn ${activeTab==='qr-iot'?'active':''}`} onClick={()=>setActiveTab('qr-iot')}>📱 QR e-Gate & IoT Baggage</button>
+          </nav>
+
+          {/* View Container */}
+          <main className="main-content">
+            {activeTab === 'flights' && <FlightView flights={flights} setFlights={setFlights} gates={gates} />}
+            {activeTab === 'passenger' && <PassengerView passengers={passengers} flights={flights} />}
+            {activeTab === 'gates' && <GateView gates={gates} setGates={setGates} flights={flights} />}
+            {activeTab === 'staff' && <StaffView staff={staff} setStaff={setStaff} />}
+            {activeTab === 'emergency' && <EmergencyView alerts={alerts} setAlerts={setAlerts} />}
+            {activeTab === 'analytics' && <AnalyticsView flights={flights} gates={gates} />}
+            {activeTab === 'ai' && <AIView flights={flights} setFlights={setFlights} gates={gates} />}
+            {activeTab === 'qr-iot' && <QRIoTView passengers={passengers} setPassengers={setPassengers} flights={flights} setFlights={setFlights} baggage={baggage} setBaggage={setBaggage} />}
+          </main>
+        </div>
+      );
+    }
+
+    // --- MODULE VIEWS ---
+    function FlightView({ flights, setFlights, gates }) {
+      const [type, setType] = useState('All');
+      const [search, setSearch] = useState('');
+
+      const filtered = flights.filter(f => {
+        const matchType = type === 'All' || f.type === type;
+        const matchSearch = f.flightNumber.toLowerCase().includes(search.toLowerCase()) || f.destination.toLowerCase().includes(search.toLowerCase()) || f.airline.toLowerCase().includes(search.toLowerCase());
+        return matchType && matchSearch;
+      });
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <h2>Delhi Airport (DEL) Flight Schedule Management (FIDS)</h2>
+          <div className="glass-card" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <input className="form-input" placeholder="Search Flight # (e.g. AI-101, 6E-2015) or City..." value={search} onChange={e=>setSearch(e.target.value)} />
+            <select className="form-select" value={type} onChange={e=>setType(e.target.value)} style={{ width: '160px' }}>
+              <option value="All">All Movements</option>
+              <option value="Departure">Departures</option>
+              <option value="Arrival">Arrivals</option>
+            </select>
+          </div>
+
+          <div className="table-container glass-card" style={{ padding: 0 }}>
+            <table className="custom-table">
+              <thead>
+                <tr>
+                  <th>Flight</th>
+                  <th>Airline</th>
+                  <th>Type</th>
+                  <th>Destination / Origin</th>
+                  <th>Sched. Time</th>
+                  <th>Terminal & Gate</th>
+                  <th>Status</th>
+                  <th>Load</th>
+                  <th>AI Risk</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(f => (
+                  <tr key={f.id}>
+                    <td style={{ fontWeight: 800, color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>{f.flightNumber}</td>
+                    <td>{f.airline}</td>
+                    <td><span className="badge badge-info">{f.type}</span></td>
+                    <td>{f.type==='Departure'?f.destination:f.origin}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{f.scheduledTime}</td>
+                    <td><span className="badge badge-purple">{f.terminal} • {f.gate}</span></td>
+                    <td><span className={`badge ${f.status==='Boarding'?'badge-info':f.status==='Delayed'?'badge-danger':'badge-success'}`}>{f.status}</span></td>
+                    <td>{f.passengersCount} / {f.maxCapacity}</td>
+                    <td><span className={`badge ${f.aiDelayRisk>50?'badge-danger':'badge-success'}`}>{f.aiDelayRisk}% Risk</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    function PassengerView({ passengers, flights }) {
+      const [pnr, setPnr] = useState('PNR-DEL-9081');
+      const selected = passengers.find(p => p.pnr === pnr) || passengers[0];
+      const matchedFlight = flights.find(f => f.flightNumber === selected?.flightNumber) || flights[0];
+      const qrRef = useRef(null);
+
+      useEffect(() => {
+        if (selected && qrRef.current && window.QRCode) {
+          qrRef.current.innerHTML = '';
+          QRCode.toCanvas(JSON.stringify({ pnr: selected.pnr, name: selected.name, flight: selected.flightNumber, gate: matchedFlight.gate, airport: 'DEL/AAI' }), { width: 140 }, (err, canvas) => {
+            if (!err) qrRef.current.appendChild(canvas);
+          });
+        }
+      }, [selected]);
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <h2>Passenger Information & DigiYatra Portal (AAI DEL)</h2>
+          <div className="glass-card" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            {passengers.map(p => (
+              <button key={p.pnr} className={`btn ${selected.pnr===p.pnr?'btn-primary':'btn-secondary'}`} onClick={()=>setPnr(p.pnr)}>
+                {p.pnr} ({p.name})
+              </button>
+            ))}
+          </div>
+
+          <div className="grid-2">
+            <div className="glass-card" style={{ border: '1px solid var(--accent-cyan)' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>AIRPORT AUTHORITY OF INDIA • DIGITAL BOARDING PASS</div>
+              <h3 style={{ color: 'var(--accent-cyan)', margin: '0.5rem 0' }}>{matchedFlight.airline}</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', margin: '1rem 0' }}>
+                <div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>PASSENGER NAME</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.2rem' }}>{selected.name}</div>
+                  <div style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>PNR: {selected.pnr}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>FLIGHT NO.</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.4rem', color: 'var(--accent-blue)', fontFamily: 'var(--font-mono)' }}>{matchedFlight.flightNumber}</div>
+                </div>
+              </div>
+              <div className="grid-4" style={{ textAlign: 'center', background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '8px' }}>
+                <div><div>TERMINAL & GATE</div><strong style={{ color: 'var(--accent-amber)' }}>{matchedFlight.gate}</strong></div>
+                <div><div>SEAT</div><strong>{selected.seat}</strong></div>
+                <div><div>CLASS</div><strong style={{ color: 'var(--accent-purple)' }}>{selected.class}</strong></div>
+                <div><div>DEP TIME</div><strong>{matchedFlight.scheduledTime} IST</strong></div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
+                <div><div>DigiYatra Face / QR Gate Pass</div><div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tag ID: {selected.tagId}</div></div>
+                <div ref={qrRef} style={{ background: '#fff', padding: '4px', borderRadius: '6px' }}></div>
+              </div>
+            </div>
+
+            <div className="glass-card">
+              <h3>Delhi Airport (DEL) Terminal Services Locator</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                  <strong>CISF Central Security Checkpoint (T3)</strong> — Live Wait: <span style={{ color: 'var(--accent-emerald)' }}>6 mins (DigiYatra Express Lane)</span>
+                </div>
+                <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                  <strong>Encalm VIP Lounge & Air India Maharaja Lounge</strong> — T3 Concourse Level 3
+                </div>
+                <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                  <strong>Delhi Duty Free Plaza</strong> — T3 International Departures
+                </div>
+                <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                  <strong>Celebi Baggage Carousel 08</strong> — Status: Active & Synced
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function GateView({ gates, setGates, flights }) {
+      const runAuto = () => {
+        setGates(prev => prev.map(g => g.status==='Available'?{...g, status:'Occupied', assignedFlight:'AAI-AUTO-ALLOCATED'}:g));
+        alert('AAI Gate Auto-Allocation Completed! Unassigned flights successfully routed to open gates at T1, T2 & T3.');
+      };
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2>AAI Delhi Airport Gate Allocation Matrix</h2>
+            <button className="btn btn-primary" onClick={runAuto}>Run AAI Smart Auto-Allocation</button>
+          </div>
+
+          <div className="grid-3">
+            {gates.map(g => (
+              <div key={g.id} className="glass-card" style={{ borderLeft: `4px solid ${g.status==='Available'?'var(--accent-emerald)':g.status==='Occupied'?'var(--accent-cyan)':'var(--accent-amber)'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{g.id}</span>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{g.terminal}</div>
+                  </div>
+                  <span className={`badge ${g.status==='Available'?'badge-success':'badge-info'}`}>{g.status}</span>
+                </div>
+                <div style={{ marginTop: '0.75rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Assigned Flight</div>
+                  <strong style={{ color: 'var(--accent-cyan)' }}>{g.assignedFlight || 'None (Open)'}</strong>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Category: {g.size}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function StaffView({ staff, setStaff }) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <h2>CISF & AAI Delhi Airport Workforce Directory</h2>
+          <div className="grid-3">
+            {staff.map(s => (
+              <div key={s.id} className="glass-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div>
+                    <strong style={{ fontSize: '1.1rem' }}>{s.name}</strong>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)' }}>{s.id}</div>
+                  </div>
+                  <span className="badge badge-success">{s.shiftStatus}</span>
+                </div>
+                <div style={{ margin: '0.75rem 0', fontSize: '0.85rem' }}>Role: {s.role} • Station: {s.location}</div>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '6px', fontSize: '0.8rem' }}>
+                  Active Assignment: {s.assignedTask}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function EmergencyView({ alerts, setAlerts }) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <h2>Airport Authority of India Incident Command</h2>
+          <div className="grid-2">
+            <div className="glass-card">
+              <h3>Active AAI Operational Alerts</h3>
+              {alerts.map(a => (
+                <div key={a.id} style={{ background: 'rgba(244,63,94,0.15)', border: '1px solid var(--accent-rose)', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <strong>{a.title}</strong>
+                    <span className="badge badge-danger">{a.severity}</span>
+                  </div>
+                  <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>{a.message}</p>
+                </div>
+              ))}
+            </div>
+            <div className="glass-card">
+              <h3>AAI Low Visibility & Safety Protocol Checklist</h3>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+                <li style={{ color: 'var(--accent-emerald)' }}>✓ Activate CAT-III B Instrument Landing System (ILS) on Runway 28/10</li>
+                <li style={{ color: 'var(--accent-emerald)' }}>✓ Issue CISF Aviation Security Advisory for Low Visibility</li>
+                <li>[ ] Alert Celebi & Bird Group Apron Surface Control</li>
+                <li>[ ] Initiate Follow-Me Vehicle Escort for Ground Taxiing</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function AnalyticsView({ flights, gates }) {
+      const chartRef = useRef(null);
+
+      useEffect(() => {
+        if (chartRef.current && window.Chart) {
+          const ctx = chartRef.current.getContext('2d');
+          const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
+              datasets: [
+                { label: 'DEL Departing Pax', data: [3800, 5200, 4600, 3900, 4100, 5800, 6200, 4900], backgroundColor: '#00f2fe' },
+                { label: 'DEL Arriving Pax', data: [3100, 4400, 4900, 3500, 3900, 5100, 5900, 4200], backgroundColor: '#8b5cf6' }
+              ]
+            },
+            options: { responsive: true, plugins: { legend: { labels: { color: '#fff' } } } }
+          });
+          return () => chart.destroy();
+        }
+      }, []);
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <h2>Delhi Airport (DEL) Operations Analytics</h2>
+          <div className="grid-4">
+            <div className="kpi-card"><div><div>AAI OTP RATE</div><div className="kpi-val" style={{ color: 'var(--accent-emerald)' }}>91.8%</div></div></div>
+            <div className="kpi-card"><div><div>HOURLY PAX FLOW</div><div className="kpi-val" style={{ color: 'var(--accent-cyan)' }}>6,200 pax/h</div></div></div>
+            <div className="kpi-card"><div><div>GATE UTILIZATION</div><div className="kpi-val" style={{ color: 'var(--accent-amber)' }}>84%</div></div></div>
+            <div className="kpi-card"><div><div>AVG BAGGAGE TIME</div><div className="kpi-val" style={{ color: 'var(--accent-purple)' }}>13.5 min</div></div></div>
+          </div>
+          <div className="glass-card">
+            <h3>Hourly Passenger Throughput (DEL T1, T2 & T3)</h3>
+            <canvas ref={chartRef}></canvas>
+          </div>
+        </div>
+      );
+    }
+
+    function AIView({ flights, setFlights, gates }) {
+      const [fog, setFog] = useState(65);
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <h2>AI Fog & Runway Delay Prediction Engine (DEL)</h2>
+          <div className="glass-card">
+            <h3>Northern India Winter Fog & RVR Intensity Slider</h3>
+            <div style={{ margin: '1rem 0' }}>
+              <label>Simulated Fog Density (CAT-III Risk): <strong>{fog}%</strong></label>
+              <input type="range" min="0" max="100" value={fog} onChange={e=>setFog(e.target.value)} style={{ width: '100%' }} />
+            </div>
+          </div>
+
+          <div className="grid-2">
+            {flights.map(f => (
+              <div key={f.id} className="glass-card" style={{ borderLeft: `4px solid ${f.aiDelayRisk>50?'var(--accent-rose)':'var(--accent-emerald)'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <strong style={{ fontSize: '1.2rem', color: 'var(--accent-cyan)' }}>{f.flightNumber} ({f.airline})</strong>
+                  <span className={`badge ${f.aiDelayRisk>50?'badge-danger':'badge-success'}`}>{f.aiDelayRisk}% Risk</span>
+                </div>
+                <div style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}>Route: {f.type==='Departure'?`DEL ➔ ${f.destination}`:`${f.origin} ➔ DEL`}</div>
+                <div style={{ background: 'rgba(0,242,254,0.1)', padding: '0.65rem', borderRadius: '6px', marginTop: '0.75rem', fontSize: '0.8rem' }}>
+                  💡 AAI AI Recommendation: {f.aiDelayRisk>50?'Assign CAT-III certified flight crew & request priority pushback slot from ATC.':'Maintain standard departure slot.'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function QRIoTView({ passengers, setPassengers, flights, setFlights, baggage, setBaggage }) {
+      const [scanPnr, setScanPnr] = useState('PNR-DEL-4412');
+      const [scanMsg, setScanMsg] = useState(null);
+
+      const doScan = () => {
+        const found = passengers.find(p=>p.pnr===scanPnr);
+        if (found) {
+          setPassengers(prev => prev.map(p=>p.pnr===scanPnr?{...p, status:'Boarded'}:p));
+          setScanMsg(`✓ DIGIYATRA AUTHORIZED: ${found.name} (${found.seat}) Boarded at Gate T1-Gate 05!`);
+        }
+      };
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <h2>QR DigiYatra e-Gate Boarding & IoT Baggage Telemetry</h2>
+          <div className="grid-2">
+            <div className="glass-card">
+              <h3>CISF DigiYatra QR e-Gate Scanner</h3>
+              <div style={{ display: 'flex', gap: '0.5rem', margin: '1rem 0' }}>
+                <select className="form-select" value={scanPnr} onChange={e=>setScanPnr(e.target.value)}>
+                  {passengers.map(p=><option key={p.pnr} value={p.pnr}>{p.pnr} - {p.name} [{p.status}]</option>)}
+                </select>
+                <button className="btn btn-primary" onClick={doScan}>Validate DigiYatra</button>
+              </div>
+              {scanMsg && <div style={{ background: 'rgba(16,185,129,0.2)', padding: '0.85rem', borderRadius: '8px', color: 'var(--accent-emerald)', fontWeight: 'bold' }}>{scanMsg}</div>}
+            </div>
+
+            <div className="glass-card">
+              <h3>AAI Celebi IoT RFID Baggage Tracking</h3>
+              {baggage.map(b => (
+                <div key={b.tagId} style={{ background: 'rgba(0,0,0,0.3)', padding: '0.85rem', borderRadius: '8px', marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <strong style={{ color: 'var(--accent-cyan)' }}>{b.tagId}</strong>
+                    <span className="badge badge-success">{b.status}</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>{b.passengerName} • {b.currentStep}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Temp: {b.tempC}°C • Shock: {b.shockG}g • Battery: {b.batteryPct}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Render App
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
