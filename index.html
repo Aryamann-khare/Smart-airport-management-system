@@ -1,673 +1,837 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AAI AeroPulse OS - Indira Gandhi International Airport (DEL)</title>
-  <meta name="description" content="Airport Authority of India (AAI) Smart Airport Operations Management System for Indira Gandhi International Airport (DEL), New Delhi." />
-  
-  <!-- Fonts -->
+  <meta name="description" content="Airport Authority of India (AAI) Smart Airport Operations Platform for Indira Gandhi International Airport (DEL / VIDP)." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  
-  <!-- Chart.js & QRCode libs -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
-
-  <!-- React & Babel Standalone for browser execution -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <style>
-    /* AAI AeroPulse OS - Glassmorphism CSS Design System */
-    :root {
-      --bg-dark: #07090e;
-      --bg-card: rgba(16, 22, 34, 0.78);
-      --bg-card-hover: rgba(24, 32, 49, 0.88);
-      --border-color: rgba(255, 255, 255, 0.08);
-      --border-glow: rgba(0, 242, 254, 0.3);
-
-      --accent-cyan: #00f2fe;
-      --accent-blue: #4facfe;
-      --accent-emerald: #10b981;
-      --accent-amber: #f59e0b;
-      --accent-rose: #f43f5e;
-      --accent-purple: #8b5cf6;
-
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-
-      --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-heading: 'Outfit', sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-
-      --radius-sm: 8px;
-      --radius-md: 14px;
-      --radius-lg: 20px;
-      --radius-full: 9999px;
-
-      --shadow-glow: 0 0 25px rgba(0, 242, 254, 0.15);
-      --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      background-color: var(--bg-dark);
-      color: var(--text-primary);
-      font-family: var(--font-main);
-      background-image: 
-        radial-gradient(circle at 15% 15%, rgba(0, 242, 254, 0.06) 0%, transparent 45%),
-        radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.06) 0%, transparent 45%),
-        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.03) 0%, transparent 65%);
-      background-attachment: fixed;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: rgba(7, 9, 14, 0.8); }
-    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
-
-    h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); letter-spacing: -0.02em; }
-
-    .app-container { display: flex; flex-direction: column; min-height: 100vh; }
-
-    .topbar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1rem 2rem; background: rgba(11, 15, 25, 0.88);
-      backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color);
-      position: sticky; top: 0; z-index: 100;
-    }
-
-    .brand { display: flex; align-items: center; gap: 0.75rem; }
-    .brand-icon {
-      width: 44px; height: 44px; border-radius: var(--radius-md);
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
-      display: flex; align-items: center; justify-content: center;
-      color: #000; font-weight: 900; font-size: 1.4rem;
-      box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
-    }
-
-    .brand-title {
-      font-size: 1.4rem; font-weight: 800;
-      background: linear-gradient(135deg, #ffffff 30%, var(--accent-cyan));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-
-    .brand-subtitle { font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; }
-
-    .topbar-actions { display: flex; align-items: center; gap: 1.5rem; }
-
-    .live-ticker {
-      display: flex; align-items: center; gap: 0.5rem;
-      background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color);
-      padding: 0.5rem 1rem; border-radius: var(--radius-full);
-      font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-cyan);
-    }
-
-    .pulse-dot {
-      width: 8px; height: 8px; border-radius: 50%; background-color: var(--accent-emerald);
-      box-shadow: 0 0 10px var(--accent-emerald); animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-      70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-    }
-
-    .nav-tabs {
-      display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 2rem;
-      background: rgba(16, 22, 34, 0.6); border-bottom: 1px solid var(--border-color);
-      overflow-x: auto;
-    }
-
-    .tab-btn {
-      display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.2rem;
-      background: transparent; border: 1px solid transparent; border-radius: var(--radius-md);
-      color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; cursor: pointer;
-      transition: all 0.25s ease; white-space: nowrap;
-    }
-
-    .tab-btn:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.05); }
-
-    .tab-btn.active {
-      color: #fff; background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(79, 172, 254, 0.1));
-      border-color: rgba(0, 242, 254, 0.4); box-shadow: var(--shadow-glow);
-    }
-
-    .main-content { flex: 1; padding: 2rem; max-width: 1600px; width: 100%; margin: 0 auto; }
-
-    .glass-card {
-      background: var(--bg-card); backdrop-filter: blur(16px);
-      border: 1px solid var(--border-color); border-radius: var(--radius-lg);
-      padding: 1.5rem; box-shadow: var(--shadow-card);
-      transition: transform 0.3s ease, border-color 0.3s ease;
-    }
-
-    .glass-card:hover { border-color: rgba(255, 255, 255, 0.18); }
-
-    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
-    .card-title { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary); }
-
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-      padding: 0.6rem 1.2rem; border-radius: var(--radius-md); font-size: 0.875rem;
-      font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: none; outline: none;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
-      color: #050b14; box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
-    }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 242, 254, 0.45); }
-
-    .btn-secondary { background: rgba(255, 255, 255, 0.08); color: var(--text-primary); border: 1px solid var(--border-color); }
-    .btn-secondary:hover { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.2); }
-
-    .btn-danger {
-      background: linear-gradient(135deg, #f43f5e, #e11d48); color: #fff;
-      box-shadow: 0 4px 15px rgba(244, 63, 94, 0.3);
-    }
-    .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(244, 63, 94, 0.5); }
-
-    .badge {
-      display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem;
-      border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.05em;
-    }
-
-    .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
-    .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
-    .badge-danger { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3); }
-    .badge-info { background: rgba(0, 242, 254, 0.15); color: var(--accent-cyan); border: 1px solid rgba(0, 242, 254, 0.3); }
-    .badge-purple { background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); border: 1px solid rgba(139, 92, 246, 0.3); }
-
-    .table-container { width: 100%; overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--border-color); }
-    .custom-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
-    .custom-table th {
-      background: rgba(255, 255, 255, 0.03); padding: 1rem; font-weight: 700;
-      color: var(--text-secondary); border-bottom: 1px solid var(--border-color);
-      text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;
-    }
-    .custom-table td { padding: 1rem; border-bottom: 1px solid var(--border-color); color: var(--text-primary); vertical-align: middle; }
-    .custom-table tr:hover { background: rgba(255, 255, 255, 0.02); }
-
-    .form-input, .form-select {
-      width: 100%; padding: 0.65rem 1rem; background: rgba(0, 0, 0, 0.3);
-      border: 1px solid var(--border-color); border-radius: var(--radius-md);
-      color: var(--text-primary); font-family: var(--font-main); font-size: 0.9rem;
-      outline: none; transition: border-color 0.2s ease;
-    }
-    .form-input:focus, .form-select:focus { border-color: var(--accent-cyan); box-shadow: 0 0 10px rgba(0, 242, 254, 0.2); }
-
-    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
-
-    @media (max-width: 1024px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: 1fr; } }
-    @media (max-width: 768px) { .grid-2, .grid-4 { grid-template-columns: 1fr; } .topbar { flex-direction: column; gap: 1rem; align-items: flex-start; } }
-
-    .emergency-banner {
-      background: linear-gradient(90deg, rgba(244, 63, 94, 0.9), rgba(225, 29, 72, 0.9));
-      color: #fff; padding: 0.75rem 2rem; display: flex; align-items: center; justify-content: space-between;
-      font-weight: 700; box-shadow: 0 4px 20px rgba(244, 63, 94, 0.4);
-    }
-
-    .kpi-card {
-      display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem;
-      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg);
-    }
-    .kpi-val { font-size: 2rem; font-weight: 800; font-family: var(--font-heading); color: var(--text-primary); margin-top: 0.25rem; }
-    .kpi-icon { width: 50px; height: 50px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.05); color: var(--accent-cyan); }
-  </style>
+  <link rel="stylesheet" href="src/index.css" />
 </head>
 <body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect, useRef, useCallback } = React;
 
-    // --- AIRPORT AUTHORITY OF INDIA (AAI) & DELHI AIRPORT (DEL) DATASET ---
-    const INITIAL_FLIGHTS = [
-      { id: "FL-DEL-101", flightNumber: "AI-101", airline: "Air India", type: "Departure", destination: "London Heathrow (LHR)", origin: "Delhi (DEL)", scheduledTime: "02:15", estimatedTime: "02:15", terminal: "Terminal 3", gate: "T3-Gate 42", status: "Boarding", passengersCount: 324, maxCapacity: 342, baggageCount: 410, aircraft: "Boeing 787-9 Dreamliner", aiDelayRisk: 14, delayReason: null, weatherContext: "Haze, Vis 2500m, Wind 06kts E", boardingProgress: 285 },
-      { id: "FL-DEL-102", flightNumber: "6E-2015", airline: "IndiGo", type: "Departure", destination: "Mumbai (BOM)", origin: "Delhi (DEL)", scheduledTime: "06:30", estimatedTime: "07:15", terminal: "Terminal 1", gate: "T1-Gate 05", status: "Delayed", passengersCount: 180, maxCapacity: 186, baggageCount: 195, aircraft: "Airbus A320neo", aiDelayRisk: 82, delayReason: "Morning Fog CAT-III Standby & Runway Hold Queue", weatherContext: "Dense Fog, Vis 150m (CAT-III Low Visibility Protocol)", boardingProgress: 0 },
-      { id: "FL-DEL-103", flightNumber: "UK-811", airline: "Vistara (Air India)", type: "Departure", destination: "Bengaluru (BLR)", origin: "Delhi (DEL)", scheduledTime: "08:00", estimatedTime: "08:00", terminal: "Terminal 3", gate: "T3-Gate 32", status: "On Time", passengersCount: 162, maxCapacity: 164, baggageCount: 178, aircraft: "Airbus A321neo", aiDelayRisk: 22, delayReason: null, weatherContext: "Scattered Haze", boardingProgress: 45 },
-      { id: "FL-DEL-104", flightNumber: "EK-513", airline: "Emirates", type: "Arrival", destination: "Delhi (DEL)", origin: "Dubai (DXB)", scheduledTime: "09:20", estimatedTime: "09:20", terminal: "Terminal 3", gate: "T3-Gate 45", status: "Landed", passengersCount: 490, maxCapacity: 517, baggageCount: 620, aircraft: "Airbus A380-800", aiDelayRisk: 8, delayReason: null, weatherContext: "Clear Sky", boardingProgress: 490 },
-      { id: "FL-DEL-105", flightNumber: "QP-1102", airline: "Akasa Air", type: "Departure", destination: "Ahmedabad (AMD)", origin: "Delhi (DEL)", scheduledTime: "10:15", estimatedTime: "10:15", terminal: "Terminal 2", gate: "T2-Gate 14", status: "On Time", passengersCount: 172, maxCapacity: 189, baggageCount: 180, aircraft: "Boeing 737 MAX 8", aiDelayRisk: 18, delayReason: null, weatherContext: "Clear", boardingProgress: 0 },
-      { id: "FL-DEL-106", flightNumber: "SG-8191", airline: "SpiceJet", type: "Departure", destination: "Goa Mopa (GOX)", origin: "Delhi (DEL)", scheduledTime: "11:45", estimatedTime: "12:30", terminal: "Terminal 1", gate: "T1-Gate 02", status: "Delayed", passengersCount: 182, maxCapacity: 189, baggageCount: 205, aircraft: "Boeing 737-800", aiDelayRisk: 76, delayReason: "Late Inbound Turnaround & Apron Refueling Slot", weatherContext: "Crosswind 14kts", boardingProgress: 0 },
-      { id: "FL-DEL-107", flightNumber: "SQ-403", airline: "Singapore Airlines", type: "Departure", destination: "Singapore (SIN)", origin: "Delhi (DEL)", scheduledTime: "21:55", estimatedTime: "21:55", terminal: "Terminal 3", gate: "T3-Gate 40", status: "On Time", passengersCount: 295, maxCapacity: 303, baggageCount: 380, aircraft: "Airbus A350-900", aiDelayRisk: 12, delayReason: null, weatherContext: "Clear Sky", boardingProgress: 0 }
+    // ═══════════════════════════════════════════════════════
+    // CONSTANTS & SEED DATA
+    // ═══════════════════════════════════════════════════════
+
+    const EMERGENCY_CATEGORIES = [
+      "Fire / Crash Tender","Medical Emergency","Bomb Threat","Suspicious Object",
+      "Cyber Attack","Severe Weather / Fog","Aircraft Incident","Power / Grid Failure",
+      "Runway Incursion","Bird Strike","Fuel Leakage"
     ];
 
-    const INITIAL_GATES = [
-      { id: "T1-Gate 01", terminal: "Terminal 1", status: "Available", assignedFlight: null, size: "Narrowbody (A320/B737)" },
-      { id: "T1-Gate 02", terminal: "Terminal 1", status: "Occupied", assignedFlight: "SG-8191", size: "Narrowbody (A320/B737)" },
-      { id: "T1-Gate 05", terminal: "Terminal 1", status: "Occupied", assignedFlight: "6E-2015", size: "Narrowbody (A320/B737)" },
-      { id: "T2-Gate 10", terminal: "Terminal 2", status: "Available", assignedFlight: null, size: "Narrowbody (A320/B737)" },
-      { id: "T2-Gate 14", terminal: "Terminal 2", status: "Occupied", assignedFlight: "QP-1102", size: "Narrowbody (A320/B737)" },
-      { id: "T3-Gate 32", terminal: "Terminal 3", status: "Occupied", assignedFlight: "UK-811", size: "Narrowbody / Widebody" },
-      { id: "T3-Gate 40", terminal: "Terminal 3", status: "Occupied", assignedFlight: "SQ-403", size: "Widebody (A350/B777)" },
-      { id: "T3-Gate 42", terminal: "Terminal 3", status: "Occupied", assignedFlight: "AI-101", size: "Widebody (B787/B777)" },
-      { id: "T3-Gate 45", terminal: "Terminal 3", status: "Occupied", assignedFlight: "EK-513", size: "Heavy CODE-F (A380)" },
-      { id: "T3-Gate 48", terminal: "Terminal 3", status: "Available", assignedFlight: null, size: "Widebody (B787/B777)" }
-    ];
+    const TRANSLATIONS = {
+      en: { dashboard:"Dashboard", map:"Airport Map", flights:"Flight FIDS", gates:"Intelligent Gates", emergency:"🚨 Emergencies", fleetHealth:"🛠️ Fleet Health", baggage:"IoT Baggage", cctv:"AI CCTV", lostFound:"Lost & Found", adminCommand:"👑 Admin Command", contactUs:"Contact Us", language:"Language", wheelchair:"Wheelchair", loginRegister:"Login / Register", logout:"Logout" },
+      hi: { dashboard:"डैशबोर्ड", map:"एयरपोर्ट मैप", flights:"उड़ान FIDS", gates:"इंटेलिजेंट गेट्स", emergency:"🚨 आपातकाल", fleetHealth:"🛠️ फ्लीट स्वास्थ्य", baggage:"आईओटी सामान", cctv:"एआई सीसीटीवी", lostFound:"खोया-पाया", adminCommand:"👑 एडमिन कमांड", contactUs:"संपर्क करें", language:"भाषा", wheelchair:"व्हीलचेयर", loginRegister:"लॉगिन / रजिस्टर", logout:"लॉगआउट" }
+    };
 
-    const INITIAL_STAFF = [
-      { id: "AAI-DEL-101", name: "Inspector Rajesh Kumar", role: "CISF Security Lead", team: "CISF Aviation Security Group (ASG)", shiftStatus: "On Duty", location: "T3 Departure DigiYatra Zone", assignedTask: "Biometric Screening & Terminal Patrol" },
-      { id: "AAI-DEL-102", name: "Vikram Sharma", role: "AAI ATC Manager", team: "AAI Air Traffic Control Tower (VIDP)", shiftStatus: "On Duty", location: "DEL ATC Tower Level 8", assignedTask: "Runway 29L Departure Sequencing" },
-      { id: "AAI-DEL-103", name: "Sunita Patel", role: "Celebi Ground Handler", team: "Celebi Ground Handling Logistics", shiftStatus: "On Duty", location: "T3 Baggage Belt 08", assignedTask: "Air India AI-101 Container Loading" },
-      { id: "AAI-DEL-104", name: "Amit Verma", role: "Avionics Engineer", team: "Air India Engineering Services (AIESL)", shiftStatus: "On Duty", location: "T3 Gate 42", assignedTask: "B787 Pre-flight Avionics Audit" },
-      { id: "AAI-DEL-105", name: "Meera Nair", role: "Customs Officer", team: "Bureau of Immigration (BOI India)", shiftStatus: "On Duty", location: "T3 International Departure", assignedTask: "Passport Clearance Control" }
-    ];
+    const DB_KEY = 'AAI_DEL_V12';
 
-    const INITIAL_PASSENGERS = [
-      { pnr: "PNR-DEL-9081", name: "Rajeshwar Singhania", flightNumber: "AI-101", seat: "03A", class: "First / Business", baggageCount: 2, status: "Boarded", tagId: "TAG-AAI-DEL-90812" },
-      { pnr: "PNR-DEL-4412", name: "Priya Sharma", flightNumber: "6E-2015", seat: "12C", class: "Economy", baggageCount: 1, status: "Security Cleared", tagId: "TAG-AAI-DEL-44102" },
-      { pnr: "PNR-DEL-8820", name: "Vikramaditya Rao", flightNumber: "UK-811", seat: "08D", class: "Premium Economy", baggageCount: 2, status: "Checked-In", tagId: "TAG-AAI-DEL-88200" },
-      { pnr: "PNR-DEL-3391", name: "Ananya Iyer", flightNumber: "AI-101", seat: "24K", class: "Economy", baggageCount: 1, status: "Boarded", tagId: "TAG-AAI-DEL-33910" }
-    ];
+    const SEED = {
+      metrics: { activeFlights:124, passengersToday:42315, bagsProcessed:39200, activeAlerts:2, gatesOccupied:27, totalGates:38, weatherStatus:"Good (Vis 2500m)", systemHealth:"99.8%", onTimePerf:"87.3%", securityCleared:41890, avgCheckIn:"2m 14s" },
+      contactInfo: { helpline:"+91 8800344794 (Toll Free)", email:"admin@delhi.aai", address:"Indira Gandhi International Airport, New Delhi – 110037, India" },
+      users: [
+        { id:"USR-001", name:"Ananya Sharma", email:"passenger@delhi.aai", password:"123", role:"Passenger", status:"APPROVED", pnr:"PNR-DEL-9081" },
+        { id:"USR-002", name:"Inspector Rajesh Kumar", email:"cisf.lead@delhi.aai", password:"123", role:"CISF Lead", status:"APPROVED", employeeId:"CISF-DEL-881" },
+        { id:"USR-003", name:"Sub-Inspector Vikram Singh", email:"cisf.officer@delhi.aai", password:"123", role:"CISF Officer", status:"APPROVED", employeeId:"CISF-DEL-904" },
+        { id:"USR-004", name:"Sunita Patel", email:"housekeeping@delhi.aai", password:"123", role:"Housekeeping", status:"APPROVED", employeeId:"HK-DEL-102" },
+        { id:"USR-005", name:"ATC Chief Controller Sharma", email:"atc.command@delhi.aai", password:"123", role:"AAI ATC Command", status:"APPROVED", employeeId:"ATC-DEL-001" },
+        { id:"USR-006", name:"ATC Officer Priya Verma", email:"atc.controller@delhi.aai", password:"123", role:"AAI ATC Controller", status:"APPROVED", employeeId:"ATC-DEL-045" },
+        { id:"USR-007", name:"Amitabh Roy", email:"ground@delhi.aai", password:"123", role:"AAI Ground Staff", status:"APPROVED", employeeId:"GND-DEL-311" },
+        { id:"USR-008", name:"Karan Malhotra", email:"airline@delhi.aai", password:"123", role:"Airline Staff", status:"APPROVED", employeeId:"AI-DEL-771" },
+        { id:"USR-009", name:"Airport Manager Rajiv Kapoor", email:"manager@delhi.aai", password:"123", role:"Airport Manager", status:"APPROVED", employeeId:"AAI-MGR-001" },
+        { id:"USR-010", name:"AAI Master Admin", email:"admin@delhi.aai", password:"123", role:"Admin", status:"APPROVED", employeeId:"AAI-ADM-001" }
+      ],
+      flights: [
+        { id:"FL-001", flightNumber:"AI-101", airline:"Air India", type:"Departure", destination:"London Heathrow (LHR)", origin:"Delhi (DEL)", scheduledTime:"02:15", estimatedTime:"02:15", terminal:"T3", gate:"T3-G42", status:"Boarding", pax:285, maxPax:324, bags:410, aircraft:"Boeing 787-9 Dreamliner", aiDelayRisk:14, boardingPct:88 },
+        { id:"FL-002", flightNumber:"6E-2015", airline:"IndiGo", type:"Departure", destination:"Mumbai (BOM)", origin:"Delhi (DEL)", scheduledTime:"06:30", estimatedTime:"07:15", terminal:"T1", gate:"T1-G05", status:"Delayed", pax:180, maxPax:186, bags:195, aircraft:"Airbus A320neo", aiDelayRisk:82, boardingPct:0 },
+        { id:"FL-003", flightNumber:"UK-811", airline:"Vistara", type:"Departure", destination:"Bengaluru (BLR)", origin:"Delhi (DEL)", scheduledTime:"07:00", estimatedTime:"07:00", terminal:"T3", gate:"T3-G32", status:"On Time", pax:162, maxPax:188, bags:175, aircraft:"Airbus A321neo", aiDelayRisk:8, boardingPct:45 },
+        { id:"FL-004", flightNumber:"SG-8102", airline:"SpiceJet", type:"Arrival", destination:"Delhi (DEL)", origin:"Jaipur (JAI)", scheduledTime:"08:45", estimatedTime:"08:40", terminal:"T1", gate:"T1-G12", status:"Landed", pax:145, maxPax:189, bags:152, aircraft:"Boeing 737-800", aiDelayRisk:0, boardingPct:100 },
+        { id:"FL-005", flightNumber:"EK-511", airline:"Emirates", type:"Arrival", destination:"Delhi (DEL)", origin:"Dubai (DXB)", scheduledTime:"09:15", estimatedTime:"09:20", terminal:"T3", gate:"T3-G55", status:"In Flight", pax:358, maxPax:398, bags:510, aircraft:"Airbus A380-800", aiDelayRisk:12, boardingPct:0 },
+        { id:"FL-006", flightNumber:"LH-761", airline:"Lufthansa", type:"Arrival", destination:"Delhi (DEL)", origin:"Frankfurt (FRA)", scheduledTime:"10:30", estimatedTime:"10:25", terminal:"T3", gate:"T3-G48", status:"In Flight", pax:274, maxPax:297, bags:385, aircraft:"Airbus A350-900", aiDelayRisk:5, boardingPct:0 },
+        { id:"FL-007", flightNumber:"AI-302", airline:"Air India", type:"Departure", destination:"Chennai (MAA)", origin:"Delhi (DEL)", scheduledTime:"11:00", estimatedTime:"11:00", terminal:"T3", gate:"T3-G28", status:"Check-in Open", pax:95, maxPax:256, bags:78, aircraft:"Boeing 777-300ER", aiDelayRisk:3, boardingPct:0 },
+        { id:"FL-008", flightNumber:"QR-571", airline:"Qatar Airways", type:"Arrival", destination:"Delhi (DEL)", origin:"Doha (DOH)", scheduledTime:"04:30", estimatedTime:"04:25", terminal:"T3", gate:"T3-G60", status:"Landed", pax:312, maxPax:335, bags:440, aircraft:"Boeing 787-9", aiDelayRisk:0, boardingPct:100 },
+        { id:"FL-009", flightNumber:"SQ-406", airline:"Singapore Airlines", type:"Departure", destination:"Singapore (SIN)", origin:"Delhi (DEL)", scheduledTime:"13:55", estimatedTime:"13:55", terminal:"T3", gate:"T3-G38", status:"Scheduled", pax:0, maxPax:303, bags:0, aircraft:"Airbus A350-900", aiDelayRisk:6, boardingPct:0 },
+        { id:"FL-010", flightNumber:"6E-6145", airline:"IndiGo", type:"Departure", destination:"Kolkata (CCU)", origin:"Delhi (DEL)", scheduledTime:"14:20", estimatedTime:"14:20", terminal:"T2", gate:"T2-G08", status:"Scheduled", pax:0, maxPax:186, bags:0, aircraft:"Airbus A320neo", aiDelayRisk:4, boardingPct:0 },
+        { id:"FL-011", flightNumber:"BA-256", airline:"British Airways", type:"Departure", destination:"London (LHR)", origin:"Delhi (DEL)", scheduledTime:"15:30", estimatedTime:"15:30", terminal:"T3", gate:"T3-G44", status:"Scheduled", pax:0, maxPax:332, bags:0, aircraft:"Boeing 787-9", aiDelayRisk:9, boardingPct:0 },
+        { id:"FL-012", flightNumber:"TK-717", airline:"Turkish Airlines", type:"Arrival", destination:"Delhi (DEL)", origin:"Istanbul (IST)", scheduledTime:"16:10", estimatedTime:"16:15", terminal:"T3", gate:"T3-G51", status:"In Flight", pax:287, maxPax:310, bags:395, aircraft:"Boeing 777-300ER", aiDelayRisk:11, boardingPct:0 }
+      ],
+      gates: [
+        { id:"T1-G01", terminal:"T1", status:"Available", flight:null, type:"Narrowbody", pax:0, compat:"A320/B737" },
+        { id:"T1-G05", terminal:"T1", status:"Occupied", flight:"6E-2015", type:"Narrowbody", pax:180, compat:"A320/B737" },
+        { id:"T1-G08", terminal:"T1", status:"Available", flight:null, type:"Narrowbody", pax:0, compat:"A320/B737" },
+        { id:"T1-G12", terminal:"T1", status:"Occupied", flight:"SG-8102", type:"Narrowbody", pax:145, compat:"A320/B737" },
+        { id:"T2-G01", terminal:"T2", status:"Available", flight:null, type:"Narrowbody", pax:0, compat:"A320/A321" },
+        { id:"T2-G05", terminal:"T2", status:"Maintenance", flight:null, type:"Narrowbody", pax:0, compat:"A320/A321" },
+        { id:"T2-G08", terminal:"T2", status:"Available", flight:null, type:"Narrowbody", pax:0, compat:"A320" },
+        { id:"T3-G28", terminal:"T3", status:"Occupied", flight:"AI-302", type:"Widebody", pax:95, compat:"B777/B787" },
+        { id:"T3-G32", terminal:"T3", status:"Occupied", flight:"UK-811", type:"Widebody", pax:162, compat:"A321/B787" },
+        { id:"T3-G38", terminal:"T3", status:"Available", flight:null, type:"Widebody", pax:0, compat:"A350/B787" },
+        { id:"T3-G42", terminal:"T3", status:"Occupied", flight:"AI-101", type:"Widebody", pax:285, compat:"B787/B777" },
+        { id:"T3-G44", terminal:"T3", status:"Available", flight:null, type:"Widebody", pax:0, compat:"B787/A350" },
+        { id:"T3-G48", terminal:"T3", status:"Reserved", flight:"LH-761", type:"Widebody", pax:0, compat:"A350/B787" },
+        { id:"T3-G51", terminal:"T3", status:"Reserved", flight:"TK-717", type:"Widebody", pax:0, compat:"B777/A350" },
+        { id:"T3-G55", terminal:"T3", status:"Reserved", flight:"EK-511", type:"Widebody", pax:0, compat:"A380/B747" },
+        { id:"T3-G60", terminal:"T3", status:"Occupied", flight:"QR-571", type:"Widebody", pax:312, compat:"B787/A350" }
+      ],
+      emergencies: [
+        { id:"EMG-001", category:"Severe Weather / Fog", severity:"Code Yellow", title:"CAT-III B Low Visibility Protocol Active", location:"DEL Runway 28/10 Threshold", responders:"AAI ATC Tower L8 & CISF ASG", timestamp:"2026-08-04 06:15 IST", status:"ACTIVE", notes:"Dense fog reduced RVR to 150m. CAT-III guidance operational.", escalated:true },
+        { id:"EMG-002", category:"Medical Emergency", severity:"Code Blue", title:"Passenger cardiac arrest at T3 Gate 42", location:"Terminal 3, Gate 42 Boarding Area", responders:"DIAL Medical Team, CISF QRT", timestamp:"2026-08-04 07:45 IST", status:"ACTIVE", notes:"68yo male passenger. AED deployed. Ambulance dispatched to airside.", escalated:false },
+        { id:"EMG-003", category:"Bird Strike", severity:"Code Green", title:"Bird strike reported on AI-302 during taxi", location:"Taxiway Bravo, near RWY 29", responders:"Wildlife Control, Ground Ops", timestamp:"2026-08-04 05:30 IST", status:"RESOLVED", notes:"Minor impact. Engine inspection completed. Aircraft cleared for ops.", escalated:false },
+        { id:"EMG-004", category:"Suspicious Object", severity:"Code Orange", title:"Unattended bag at T1 Security Hold", location:"Terminal 1, Security Hold Area Lane 4", responders:"CISF Bomb Disposal Squad, Dog Squad", timestamp:"2026-08-03 22:10 IST", status:"RESOLVED", notes:"Bag scanned & cleared. Passenger identified and counseled.", escalated:true }
+      ],
+      baggage: [
+        { id:"BAG-001", tagId:"DEL-LHR-88401", pnr:"PNR-DEL-9081", flight:"AI-101", passenger:"Ananya Sharma", origin:"DEL", destination:"LHR", weight:"23.4 kg", status:"Loading", steps:[{loc:"Check-in Counter T3-C12",time:"01:15",done:true},{loc:"Security X-Ray Belt 3",time:"01:28",done:true},{loc:"Sorting Hub A (DEL)",time:"01:45",done:true},{loc:"Loading Bay T3-G42",time:"02:05",done:false},{loc:"Aircraft Cargo Hold",time:"—",done:false}] },
+        { id:"BAG-002", tagId:"DEL-BOM-20151", pnr:"PNR-DEL-5512", flight:"6E-2015", passenger:"Rahul Mehta", origin:"DEL", destination:"BOM", weight:"15.2 kg", status:"In Sorting", steps:[{loc:"Check-in Counter T1-C04",time:"05:30",done:true},{loc:"Security X-Ray Belt 1",time:"05:42",done:true},{loc:"Sorting Hub B (DEL)",time:"06:00",done:false},{loc:"Loading Bay T1-G05",time:"—",done:false},{loc:"Aircraft Cargo Hold",time:"—",done:false}] },
+        { id:"BAG-003", tagId:"DXB-DEL-51101", pnr:"PNR-EK-7823", flight:"EK-511", passenger:"Ahmed Al-Rashid", origin:"DXB", destination:"DEL", weight:"28.1 kg", status:"In Transit", steps:[{loc:"Loaded at DXB Terminal 3",time:"05:00",done:true},{loc:"In Flight (EK-511)",time:"05:45",done:true},{loc:"Arrival Belt DEL",time:"—",done:false},{loc:"Customs Screening",time:"—",done:false},{loc:"Collection Carousel 7",time:"—",done:false}] },
+        { id:"BAG-004", tagId:"DEL-BLR-81105", pnr:"PNR-UK-4491", flight:"UK-811", passenger:"Priya Nair", origin:"DEL", destination:"BLR", weight:"12.8 kg", status:"Loaded", steps:[{loc:"Check-in Counter T3-C08",time:"05:45",done:true},{loc:"Security X-Ray Belt 2",time:"06:01",done:true},{loc:"Sorting Hub A (DEL)",time:"06:18",done:true},{loc:"Loading Bay T3-G32",time:"06:35",done:true},{loc:"Aircraft Cargo Hold",time:"06:42",done:true}] },
+        { id:"BAG-005", tagId:"JAI-DEL-81021", pnr:"PNR-SG-6601", flight:"SG-8102", passenger:"Vikram Joshi", origin:"JAI", destination:"DEL", weight:"19.5 kg", status:"Delivered", steps:[{loc:"Loaded at JAI",time:"07:15",done:true},{loc:"In Flight (SG-8102)",time:"07:30",done:true},{loc:"Arrival Belt DEL T1",time:"08:45",done:true},{loc:"Customs Screening",time:"08:52",done:true},{loc:"Collection Carousel 3",time:"08:58",done:true}] },
+        { id:"BAG-006", tagId:"DOH-DEL-57101", pnr:"PNR-QR-8812", flight:"QR-571", passenger:"Fatima Hassan", origin:"DOH", destination:"DEL", weight:"31.2 kg", status:"At Carousel", steps:[{loc:"Loaded at DOH Hamad Intl",time:"23:30",done:true},{loc:"In Flight (QR-571)",time:"00:15",done:true},{loc:"Arrival Belt DEL T3",time:"04:30",done:true},{loc:"Customs Screening",time:"04:38",done:true},{loc:"Collection Carousel 11",time:"04:45",done:true}] }
+      ],
+      lostAndFound: [
+        { id:"LF-001", item:"Leather Wallet (Black)", category:"Personal Item", location:"T3 CISF Security Lane B", dateFound:"2026-08-04", status:"UNCLAIMED", description:"Black leather bifold wallet with ICICI debit card and approx ₹2,500 cash.", claimedBy:null },
+        { id:"LF-002", item:"Apple iPad Pro 12.9\"", category:"Electronics", location:"T3 Departure Lounge Gate 38", dateFound:"2026-08-04", status:"UNCLAIMED", description:"Space gray iPad Pro with blue Smart Folio case. Locked with passcode.", claimedBy:null },
+        { id:"LF-003", item:"Gold Necklace with Ruby Pendant", category:"Jewelry", location:"T1 Ladies Washroom near Gate 08", dateFound:"2026-08-03", status:"CLAIMED", description:"22K gold chain with single ruby pendant. Weight approx 12g.", claimedBy:"Mrs. Sunita Agarwal (PNR: PNR-6E-2201)" },
+        { id:"LF-004", item:"Samsonite Carry-on (Red)", category:"Luggage", location:"T3 Arrival Carousel 7", dateFound:"2026-08-03", status:"UNCLAIMED", description:"Red Samsonite hardshell carry-on. Tag partially torn. Contains clothing.", claimedBy:null },
+        { id:"LF-005", item:"Child's Stuffed Toy (Elephant)", category:"Personal Item", location:"T2 Play Area", dateFound:"2026-08-04", status:"UNCLAIMED", description:"Grey plush elephant toy, approx 30cm. Well-loved condition.", claimedBy:null },
+        { id:"LF-006", item:"Canon EOS R5 Camera Body", category:"Electronics", location:"T3 Duty Free Shopping Area", dateFound:"2026-08-02", status:"CLAIMED", description:"Canon EOS R5 body with RF 24-70mm lens. Serial: 012345678. Found in shopping bag.", claimedBy:"Mr. James Wilson (Passport: GB7891234)" },
+        { id:"LF-007", item:"Prescription Glasses (Ray-Ban)", category:"Personal Item", location:"T1 Check-in Counter 12", dateFound:"2026-08-04", status:"UNCLAIMED", description:"Ray-Ban tortoiseshell frame with progressive lenses. Brown leather case.", claimedBy:null },
+        { id:"LF-008", item:"HP Laptop Backpack", category:"Luggage", location:"T3 CISF Security Belt 5", dateFound:"2026-08-04", status:"UNCLAIMED", description:"Black HP laptop bag with HP Pavilion laptop, charger, and documents inside.", claimedBy:null }
+      ],
+      wheelchairRequests: [
+        { id:"WC-001", passengerName:"Savitri Devi", airlineName:"Air India", pnrNumber:"PNR-DEL-7781", mobileNumber:"+91 9876543210", timestamp:"08:15 IST", status:"DISPATCHED" },
+        { id:"WC-002", passengerName:"Mohammad Iqbal", airlineName:"Emirates", pnrNumber:"PNR-EK-5512", mobileNumber:"+91 8765432109", timestamp:"09:02 IST", status:"COMPLETED" },
+        { id:"WC-003", passengerName:"Catherine D'Souza", airlineName:"Vistara", pnrNumber:"PNR-UK-3390", mobileNumber:"+91 7654321098", timestamp:"09:30 IST", status:"PENDING" }
+      ],
+      cctv: [
+        { id:"CAM-001", name:"T3 Main Entrance", location:"Terminal 3, Entry Gate A", status:"ONLINE", peopleCount:342, alerts:0, zone:"Public" },
+        { id:"CAM-002", name:"T3 Security Checkpoint", location:"Terminal 3, CISF Security Lane", status:"ONLINE", peopleCount:128, alerts:1, zone:"Restricted" },
+        { id:"CAM-003", name:"T1 Departure Gates", location:"Terminal 1, Gates 1-8", status:"ONLINE", peopleCount:215, alerts:0, zone:"Secure" },
+        { id:"CAM-004", name:"T3 Baggage Claim", location:"Terminal 3, Carousel Area", status:"ONLINE", peopleCount:89, alerts:0, zone:"Arrival" },
+        { id:"CAM-005", name:"Runway 28/10", location:"Airside, Runway Threshold 28", status:"ONLINE", peopleCount:0, alerts:0, zone:"Airside" },
+        { id:"CAM-006", name:"T2 Check-in Hall", location:"Terminal 2, Check-in Area", status:"OFFLINE", peopleCount:0, alerts:2, zone:"Public" },
+        { id:"CAM-007", name:"T3 Parking Structure P5", location:"Multi-level Parking P5", status:"ONLINE", peopleCount:15, alerts:0, zone:"Public" },
+        { id:"CAM-008", name:"ATC Tower Perimeter", location:"ATC Tower Compound", status:"ONLINE", peopleCount:4, alerts:0, zone:"Restricted" },
+        { id:"CAM-009", name:"T3 Duty Free Zone", location:"Terminal 3, Duty Free Mall", status:"ONLINE", peopleCount:176, alerts:0, zone:"Secure" }
+      ],
+      fleetHealth: [
+        { id:"FH-001", aircraft:"Boeing 787-9 (VT-ANB)", flight:"AI-101", engine:"98%", hydraulic:"96%", tyre:"88% (Good)", brake:"Optimal", fuel:"99.2%", nextMaint:"2026-08-10", status:"Airworthy" },
+        { id:"FH-002", aircraft:"Airbus A320neo (VT-ITE)", flight:"6E-2015", engine:"92%", hydraulic:"88%", tyre:"55% (Moderate)", brake:"Inspect Next", fuel:"97.5%", nextMaint:"2026-08-05", status:"Conditional" },
+        { id:"FH-003", aircraft:"Airbus A321neo (VT-TVA)", flight:"UK-811", engine:"96%", hydraulic:"94%", tyre:"82% (Good)", brake:"Good", fuel:"98.8%", nextMaint:"2026-08-15", status:"Airworthy" },
+        { id:"FH-004", aircraft:"Boeing 737-800 (VT-SYC)", flight:"SG-8102", engine:"89%", hydraulic:"85%", tyre:"42% (Replace Soon)", brake:"Worn", fuel:"95.1%", nextMaint:"2026-08-06", status:"Needs Attention" },
+        { id:"FH-005", aircraft:"Airbus A380-800 (A6-EUG)", flight:"EK-511", engine:"99%", hydraulic:"97%", tyre:"91% (Excellent)", brake:"Optimal", fuel:"99.5%", nextMaint:"2026-08-20", status:"Airworthy" },
+        { id:"FH-006", aircraft:"Airbus A350-900 (D-AIXA)", flight:"LH-761", engine:"97%", hydraulic:"95%", tyre:"78% (Good)", brake:"Good", fuel:"98.9%", nextMaint:"2026-08-12", status:"Airworthy" }
+      ],
+      auditLogs: [
+        { id:"LOG-001", timestamp:"2026-08-04 06:15:22 IST", actor:"SYSTEM", action:"SYSTEM_BOOT", details:"AOCC Platform initialized successfully." },
+        { id:"LOG-002", timestamp:"2026-08-04 06:16:01 IST", actor:"AAI Master Admin (Admin)", action:"FLIGHT_UPDATE", details:"Updated AI-101 status to Boarding." },
+        { id:"LOG-003", timestamp:"2026-08-04 06:20:15 IST", actor:"SYSTEM", action:"EMERGENCY_CREATE", details:"EMG-001: Severe Weather / Fog protocol activated." },
+        { id:"LOG-004", timestamp:"2026-08-04 07:45:30 IST", actor:"CISF Lead (CISF-DEL-881)", action:"EMERGENCY_CREATE", details:"EMG-002: Medical emergency at T3 Gate 42." }
+      ]
+    };
 
-    const INITIAL_BAGGAGE = [
-      {
-        tagId: "TAG-AAI-DEL-90812", pnr: "PNR-DEL-9081", passengerName: "Rajeshwar Singhania", flightNumber: "AI-101", weightKg: 24.5, currentStep: "Aircraft Hold (T3 Gate 42)", status: "Loaded", batteryPct: 96, tempC: 19.4, shockG: 0.1,
-        locationHistory: [
-          { step: "Check-in Counter AI-12 (T3)", time: "00:15", verified: true },
-          { step: "CISF Inline X-Ray Screening B", time: "00:35", verified: true },
-          { step: "Celebi Automated BHS Carousel 4", time: "01:05", verified: true },
-          { step: "Aircraft Cargo Bay (AI-101)", time: "01:45", verified: true }
-        ]
-      },
-      {
-        tagId: "TAG-AAI-DEL-44102", pnr: "PNR-DEL-4412", passengerName: "Priya Sharma", flightNumber: "6E-2015", weightKg: 14.8, currentStep: "Inline BHS Sorting (T1)", status: "Normal", batteryPct: 91, tempC: 22.1, shockG: 0.3,
-        locationHistory: [
-          { step: "DigiYatra Express Drop Counter T1", time: "05:15", verified: true },
-          { step: "CISF High-Speed Baggage Scanner", time: "05:35", verified: true },
-          { step: "Staging Area T1 Gate 05", time: "06:10", verified: true }
-        ]
-      },
-      {
-        tagId: "TAG-AAI-DEL-88200", pnr: "PNR-DEL-8820", passengerName: "Vikramaditya Rao", flightNumber: "UK-811", weightKg: 21.0, currentStep: "Rerouted / Manual Audit", status: "Misplaced Alert", batteryPct: 78, tempC: 25.2, shockG: 2.4,
-        locationHistory: [
-          { step: "Vistara Check-in Counter Island F (T3)", time: "06:30", verified: true },
-          { step: "CISF Security Clearance Node", time: "06:50", verified: true },
-          { step: "Celebi Transfer Loop 9 (Mismatch MUX)", time: "07:25", verified: false }
-        ]
-      }
-    ];
+    function loadDB() {
+      try { const d = localStorage.getItem(DB_KEY); if(d) return JSON.parse(d); } catch(e){}
+      const fresh = JSON.parse(JSON.stringify(SEED));
+      localStorage.setItem(DB_KEY, JSON.stringify(fresh));
+      return fresh;
+    }
+    function saveDB(db) { try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch(e){} }
 
-    const INITIAL_ALERTS = [
-      { id: "ALERT-AAI-DEL-01", severity: "Code Yellow", title: "CAT-III B Winter Fog Low Visibility Protocol", message: "RVR (Runway Visual Range) on Runway 28/10 dropped below 150m. AAI Air Traffic Control has activated Low Visibility Procedures (LVP) for all departing & arriving flights.", timestamp: "06:15:00", affectedTerminals: ["Terminal 1", "Terminal 2", "Terminal 3"], actionRequired: "Enforce CAT-III ILS guidance separation for all non-certified aircraft." }
-    ];
+    // ═══════════════════════════════════════════════════════
+    // MAIN APP
+    // ═══════════════════════════════════════════════════════
 
-    // --- MAIN APP COMPONENT ---
     function App() {
-      const [activeTab, setActiveTab] = useState('flights');
-      const [flights, setFlights] = useState(INITIAL_FLIGHTS);
-      const [gates, setGates] = useState(INITIAL_GATES);
-      const [staff, setStaff] = useState(INITIAL_STAFF);
-      const [passengers, setPassengers] = useState(INITIAL_PASSENGERS);
-      const [baggage, setBaggage] = useState(INITIAL_BAGGAGE);
-      const [alerts, setAlerts] = useState(INITIAL_ALERTS);
-
+      const [db, setDb] = useState(loadDB());
+      const [lang, setLang] = useState('en');
+      const [theme, setTheme] = useState('dark');
+      const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+      const [activeTab, setActiveTab] = useState('dashboard');
+      const [toasts, setToasts] = useState([]);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [currentUser, setCurrentUser] = useState(null);
+      const [showAuthModal, setShowAuthModal] = useState(false);
+      const [showContactModal, setShowContactModal] = useState(false);
+      const [showWheelchairModal, setShowWheelchairModal] = useState(false);
       const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
+      const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
+      useEffect(() => { saveDB(db); }, [db]);
+      useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
       useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
+        const timer = setInterval(() => {
+          setCurrentTime(new Date().toLocaleTimeString());
+          setDb(prev => ({...prev, metrics:{...prev.metrics, passengersToday:prev.metrics.passengersToday+Math.floor(Math.random()*3), bagsProcessed:prev.metrics.bagsProcessed+Math.floor(Math.random()*2)}}));
+        }, 5000);
         return () => clearInterval(timer);
       }, []);
 
-      const activeEmergency = alerts.length > 0 ? alerts[0] : null;
+      const addToast = (msg, type='info') => { const id=Date.now(); setToasts(p=>[...p,{id,msg,type}]); setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),4000); };
+      const appendAuditLog = (action, details) => {
+        const log = { id:`LOG-${Date.now().toString().slice(-4)}`, timestamp:new Date().toLocaleString()+' IST', actor:currentUser?`${currentUser.name} (${currentUser.role})`:'Anonymous', action, details };
+        setDb(prev=>({...prev, auditLogs:[log,...prev.auditLogs]}));
+      };
+
+      // Auth
+      const [loginForm, setLoginForm] = useState({email:'',password:''});
+
+      const handleLogin = (e) => {
+        e.preventDefault();
+        const found = db.users.find(u=>u.email.toLowerCase()===loginForm.email.toLowerCase().trim()&&u.password===loginForm.password);
+        if(!found){addToast('Invalid Credentials','danger');return;}
+        if(found.role!=='Admin'){addToast('Only Admin login is permitted from this panel','danger');return;}
+        if(found.status==='PENDING_APPROVAL'){addToast('Pending Admin Approval','warning');return;}
+        setCurrentUser(found); setShowAuthModal(false);
+        appendAuditLog('USER_LOGIN',`${found.name} (${found.role}) logged in.`);
+        addToast(`Welcome, ${found.name} (${found.role})!`,'success');
+      };
+
+      // Wheelchair
+      const [wcForm, setWcForm] = useState({passengerName:'',airlineName:'Air India',pnrNumber:'',mobileNumber:''});
+      const handleWcSubmit = (e) => {
+        e.preventDefault();
+        const req = {id:`WC-${Date.now().toString().slice(-3)}`,...wcForm,timestamp:new Date().toLocaleTimeString()+' IST',status:'DISPATCHED'};
+        setDb(prev=>({...prev,wheelchairRequests:[req,...prev.wheelchairRequests]}));
+        appendAuditLog('WHEELCHAIR_DISPATCH',`Wheelchair for ${wcForm.passengerName}`);
+        setShowWheelchairModal(false); setWcForm({passengerName:'',airlineName:'Air India',pnrNumber:'',mobileNumber:''});
+        addToast('♿ Wheelchair Dispatched!','success');
+      };
+
+      const isAdmin = currentUser?.role==='Admin';
+      const isManager = currentUser?.role==='Airport Manager'||isAdmin;
+      const isATC = currentUser?.role==='AAI ATC Command'||currentUser?.role==='AAI ATC Controller'||isManager;
+      const isCISF = currentUser?.role==='CISF Lead'||currentUser?.role==='CISF Officer'||isManager;
+      const isGroundOrAirline = currentUser?.role==='AAI Ground Staff'||currentUser?.role==='Airline Staff'||isManager;
+
+      const sidebarItems = [
+        {key:'dashboard',icon:'📊',label:t.dashboard},
+        {key:'map',icon:'🗺️',label:t.map},
+        {key:'flights',icon:'✈️',label:t.flights},
+        {key:'gates',icon:'🚪',label:t.gates},
+        {key:'emergency',icon:'🚨',label:t.emergency+` (${db.emergencies.filter(e=>e.status==='ACTIVE').length})`},
+        {key:'fleetHealth',icon:'🛠️',label:t.fleetHealth},
+        {key:'baggage',icon:'🛄',label:t.baggage},
+        {key:'cctv',icon:'🎥',label:t.cctv},
+        {key:'lostFound',icon:'🔍',label:t.lostFound}
+      ];
 
       return (
-        <div className="app-container">
-          {/* Emergency Alert Banner */}
-          {activeEmergency && (
-            <div className="emergency-banner">
-              <div>⚠️ AIRPORT AUTHORITY OF INDIA ADVISORY ({activeEmergency.severity}): {activeEmergency.title} — {activeEmergency.message}</div>
-              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }} onClick={() => setActiveTab('emergency')}>
-                AAI Command Center
-              </button>
+        <div className="app-layout">
+          {/* SIDEBAR */}
+          <aside className={`sidebar ${sidebarCollapsed?'collapsed':''}`}>
+            <div className="sidebar-brand" onClick={()=>setSidebarCollapsed(!sidebarCollapsed)} style={{cursor:'pointer'}}>
+              <div className="brand-icon">🇮🇳</div>
+              {!sidebarCollapsed && <div><div className="brand-title">AAI AeroPulse</div><div className="brand-subtitle">DEL AOCC</div></div>}
+            </div>
+            <div className="sidebar-menu">
+              {sidebarItems.map(item=>(
+                <div key={item.key} className={`sidebar-link ${activeTab===item.key?'active':''}`} onClick={()=>setActiveTab(item.key)}>
+                  <span>{item.icon}</span> {!sidebarCollapsed && <span>{item.label}</span>}
+                </div>
+              ))}
+              {isAdmin && (
+                <div className={`sidebar-link ${activeTab==='adminCommand'?'active':''}`} onClick={()=>setActiveTab('adminCommand')} style={{color:'var(--accent-amber)',fontWeight:800}}>
+                  <span>👑</span> {!sidebarCollapsed && <span>{t.adminCommand}</span>}
+                </div>
+              )}
+            </div>
+            <div style={{paddingTop:'1rem',borderTop:'1px solid var(--border-color)',display:'flex',gap:'0.25rem',background:'rgba(0,0,0,0.3)',padding:'0.2rem',borderRadius:'var(--radius-md)'}}>
+              <button className="btn btn-secondary" style={{flex:1,padding:'0.3rem',fontSize:'0.7rem',background:theme==='dark'?'var(--accent-cyan)':'transparent',color:theme==='dark'?'#000':'var(--text-secondary)'}} onClick={()=>setTheme('dark')}>🌙</button>
+              <button className="btn btn-secondary" style={{flex:1,padding:'0.3rem',fontSize:'0.7rem',background:theme==='light'?'var(--accent-cyan)':'transparent',color:theme==='light'?'#000':'var(--text-secondary)'}} onClick={()=>setTheme('light')}>☀️</button>
+            </div>
+          </aside>
+
+          {/* MAIN */}
+          <div className={`main-wrapper ${sidebarCollapsed?'expanded':''}`}>
+            <header className="topbar">
+              <div style={{flex:1,maxWidth:'320px'}}>
+                <input type="text" className="form-input" placeholder="🔍 Search flights, gates, passengers..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} />
+              </div>
+              <div className="topbar-actions">
+                <div className="live-ticker"><div className="pulse-dot"></div><span>VIDP/DEL • {currentTime} IST</span></div>
+                <button className="btn btn-secondary" onClick={()=>setShowContactModal(true)}>📞 {t.contactUs}</button>
+                <select className="form-select" value={lang} onChange={e=>setLang(e.target.value)} style={{width:'auto',padding:'0.35rem'}}>
+                  <option value="en">English</option><option value="hi">हिंदी</option>
+                </select>
+                <button className="btn btn-secondary" onClick={()=>setShowWheelchairModal(true)}>♿ {t.wheelchair}</button>
+                {currentUser ? (
+                  <div className="user-profile-badge">
+                    <div><strong style={{fontSize:'0.85rem'}}>{currentUser.name}</strong><div style={{fontSize:'0.7rem',color:'var(--accent-cyan)'}}>Desig: {currentUser.role}</div></div>
+                    <button className="btn btn-secondary" style={{padding:'0.2rem 0.5rem',fontSize:'0.75rem'}} onClick={()=>{setCurrentUser(null);addToast('Logged out.','info');}}>{t.logout}</button>
+                  </div>
+                ) : (
+                  <button className="btn btn-primary" onClick={()=>setShowAuthModal(true)}>🔑 Admin Login</button>
+                )}
+              </div>
+            </header>
+
+            <main className="main-content">
+              {activeTab==='dashboard' && <DashboardView db={db} currentUser={currentUser} setActiveTab={setActiveTab} />}
+              {activeTab==='map' && <MapView db={db} />}
+              {activeTab==='flights' && <FlightsView db={db} setDb={setDb} isAdmin={isAdmin} isATC={isATC} addToast={addToast} appendAuditLog={appendAuditLog} searchQuery={searchQuery} />}
+              {activeTab==='gates' && <GatesView db={db} setDb={setDb} isAdmin={isAdmin} isGroundOrAirline={isGroundOrAirline} addToast={addToast} appendAuditLog={appendAuditLog} />}
+              {activeTab==='emergency' && <EmergencyView db={db} setDb={setDb} isAdmin={isAdmin} isCISF={isCISF} addToast={addToast} appendAuditLog={appendAuditLog} />}
+              {activeTab==='fleetHealth' && <FleetHealthView db={db} setDb={setDb} isAdmin={isAdmin} addToast={addToast} appendAuditLog={appendAuditLog} />}
+              {activeTab==='baggage' && <BaggageView db={db} setDb={setDb} isAdmin={isAdmin} addToast={addToast} appendAuditLog={appendAuditLog} />}
+              {activeTab==='cctv' && <CctvView db={db} setDb={setDb} isAdmin={isAdmin} isCISF={isCISF} />}
+              {activeTab==='lostFound' && <LostFoundView db={db} setDb={setDb} isAdmin={isAdmin} isCISF={isCISF} currentUser={currentUser} addToast={addToast} appendAuditLog={appendAuditLog} />}
+              {activeTab==='adminCommand' && isAdmin && <AdminView db={db} setDb={setDb} addToast={addToast} appendAuditLog={appendAuditLog} />}
+            </main>
+          </div>
+
+          {/* TOASTS */}
+          <div className="toast-container">
+            {toasts.map(t=><div key={t.id} className="toast" style={{borderColor:t.type==='success'?'var(--accent-emerald)':t.type==='warning'?'var(--accent-amber)':t.type==='danger'?'var(--accent-rose)':'var(--accent-cyan)'}}>{t.msg}</div>)}
+          </div>
+
+          {/* CONTACT MODAL */}
+          {showContactModal && (
+            <div className="modal-overlay" onClick={e=>{if(e.target.className.includes('modal-overlay'))setShowContactModal(false)}}>
+              <div className="modal-card">
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'1rem'}}><h3 style={{color:'var(--accent-cyan)'}}>📞 Delhi Airport Support</h3><button className="btn btn-secondary" onClick={()=>setShowContactModal(false)}>✕</button></div>
+                <div style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
+                  <div className="glass-card" style={{padding:'1rem'}}><div style={{fontSize:'0.8rem',color:'var(--text-secondary)'}}>Toll Free Helpline</div><div style={{fontSize:'1.2rem',fontWeight:700,color:'var(--accent-emerald)',marginTop:'0.25rem'}}>{db.contactInfo.helpline}</div></div>
+                  <div className="glass-card" style={{padding:'1rem'}}><div style={{fontSize:'0.8rem',color:'var(--text-secondary)'}}>Email</div><div style={{fontSize:'1rem',fontWeight:600,marginTop:'0.25rem'}}>{db.contactInfo.email}</div></div>
+                  <div className="glass-card" style={{padding:'1rem'}}><div style={{fontSize:'0.8rem',color:'var(--text-secondary)'}}>Address</div><div style={{fontSize:'0.9rem',marginTop:'0.25rem'}}>{db.contactInfo.address}</div></div>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Header */}
-          <header className="topbar">
-            <div className="brand">
-              <div className="brand-icon">🇮🇳</div>
-              <div>
-                <div className="brand-title">AAI AeroPulse OS</div>
-                <div className="brand-subtitle">Airport Authority of India • Delhi Int'l Airport (DEL)</div>
+          {/* WHEELCHAIR MODAL */}
+          {showWheelchairModal && (
+            <div className="modal-overlay" onClick={e=>{if(e.target.className.includes('modal-overlay'))setShowWheelchairModal(false)}}>
+              <div className="modal-card">
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'1rem'}}><h3 style={{color:'var(--accent-cyan)'}}>♿ Wheelchair Dispatch</h3><button className="btn btn-secondary" onClick={()=>setShowWheelchairModal(false)}>✕</button></div>
+                <form onSubmit={handleWcSubmit} style={{display:'flex',flexDirection:'column',gap:'0.75rem'}}>
+                  <input type="text" required className="form-input" placeholder="Passenger Name" value={wcForm.passengerName} onChange={e=>setWcForm({...wcForm,passengerName:e.target.value})} />
+                  <input type="text" required className="form-input" placeholder="Airline Name" value={wcForm.airlineName} onChange={e=>setWcForm({...wcForm,airlineName:e.target.value})} />
+                  <input type="text" className="form-input" placeholder="PNR Number" value={wcForm.pnrNumber} onChange={e=>setWcForm({...wcForm,pnrNumber:e.target.value})} />
+                  <input type="tel" required className="form-input" placeholder="Mobile Contact" value={wcForm.mobileNumber} onChange={e=>setWcForm({...wcForm,mobileNumber:e.target.value})} />
+                  <button type="submit" className="btn btn-primary">Dispatch Wheelchair</button>
+                </form>
+                {db.wheelchairRequests.length>0 && (
+                  <div style={{marginTop:'1rem'}}>
+                    <h4 style={{marginBottom:'0.5rem',color:'var(--text-secondary)',fontSize:'0.85rem'}}>Recent Requests</h4>
+                    {db.wheelchairRequests.slice(0,3).map(r=>(
+                      <div key={r.id} style={{display:'flex',justifyContent:'space-between',padding:'0.5rem',borderBottom:'1px solid var(--border-color)',fontSize:'0.8rem'}}>
+                        <span>{r.passengerName} ({r.airlineName})</span>
+                        <span className={`badge ${r.status==='COMPLETED'?'badge-success':r.status==='DISPATCHED'?'badge-warning':'badge-info'}`}>{r.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="topbar-actions">
-              <div className="live-ticker">
-                <div className="pulse-dot"></div>
-                <span>VIDP / DEL AIRPORT • {currentTime} IST</span>
+          )}
+
+          {/* AUTH MODAL — Admin Only */}
+          {showAuthModal && (
+            <div className="modal-overlay" onClick={e=>{if(e.target.className.includes('modal-overlay'))setShowAuthModal(false)}}>
+              <div className="modal-card" style={{maxWidth:'480px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'1.25rem'}}><h3 style={{color:'var(--accent-amber)',fontSize:'1.2rem',fontWeight:800}}>👑 Admin Login</h3><button className="btn btn-secondary" onClick={()=>setShowAuthModal(false)}>✕</button></div>
+                <div style={{marginBottom:'1.25rem',background:'rgba(245,158,11,0.08)',padding:'0.85rem',borderRadius:'8px',border:'1px solid rgba(245,158,11,0.25)',textAlign:'center'}}>
+                  <div style={{fontSize:'0.8rem',color:'var(--accent-amber)',fontWeight:700,marginBottom:'0.35rem'}}>🔒 Restricted Access</div>
+                  <div style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Only authorized AAI Admin personnel may access this portal.</div>
+                </div>
+                <form onSubmit={handleLogin} style={{display:'flex',flexDirection:'column',gap:'0.85rem'}}>
+                  <div><label style={{fontSize:'0.8rem',color:'var(--text-secondary)'}}>Admin Email</label><input type="email" required className="form-input" placeholder="admin@delhi.aai" value={loginForm.email} onChange={e=>setLoginForm({...loginForm,email:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.8rem',color:'var(--text-secondary)'}}>Password</label><input type="password" required className="form-input" value={loginForm.password} onChange={e=>setLoginForm({...loginForm,password:e.target.value})} /></div>
+                  <button type="submit" className="btn btn-primary" style={{padding:'0.65rem',background:'linear-gradient(135deg, var(--accent-amber), #d97706)',color:'#000'}}>🔑 Login as Admin</button>
+                </form>
+                <div style={{marginTop:'1rem',textAlign:'center',fontSize:'0.72rem',color:'var(--text-muted)'}}>
+                  Default: admin@delhi.aai / 123
+                </div>
               </div>
-              <span className="badge badge-success">AAI CAT-III Systems Active</span>
             </div>
-          </header>
-
-          {/* Tabs */}
-          <nav className="nav-tabs">
-            <button className={`tab-btn ${activeTab==='flights'?'active':''}`} onClick={()=>setActiveTab('flights')}>✈ Flight Schedule (FIDS)</button>
-            <button className={`tab-btn ${activeTab==='passenger'?'active':''}`} onClick={()=>setActiveTab('passenger')}>🧳 Passenger DigiYatra Portal</button>
-            <button className={`tab-btn ${activeTab==='gates'?'active':''}`} onClick={()=>setActiveTab('gates')}>🚪 Gate Matrix</button>
-            <button className={`tab-btn ${activeTab==='staff'?'active':''}`} onClick={()=>setActiveTab('staff')}>👨‍✈️ CISF & Staff Roster</button>
-            <button className={`tab-btn ${activeTab==='emergency'?'active':''}`} onClick={()=>setActiveTab('emergency')}>🚨 AAI Alerts ({alerts.length})</button>
-            <button className={`tab-btn ${activeTab==='analytics'?'active':''}`} onClick={()=>setActiveTab('analytics')}>📊 DEL Real-Time Analytics</button>
-            <button className={`tab-btn ${activeTab==='ai'?'active':''}`} onClick={()=>setActiveTab('ai')}>🧠 AI Fog & Delay Predictor</button>
-            <button className={`tab-btn ${activeTab==='qr-iot'?'active':''}`} onClick={()=>setActiveTab('qr-iot')}>📱 QR e-Gate & IoT Baggage</button>
-          </nav>
-
-          {/* View Container */}
-          <main className="main-content">
-            {activeTab === 'flights' && <FlightView flights={flights} setFlights={setFlights} gates={gates} />}
-            {activeTab === 'passenger' && <PassengerView passengers={passengers} flights={flights} />}
-            {activeTab === 'gates' && <GateView gates={gates} setGates={setGates} flights={flights} />}
-            {activeTab === 'staff' && <StaffView staff={staff} setStaff={setStaff} />}
-            {activeTab === 'emergency' && <EmergencyView alerts={alerts} setAlerts={setAlerts} />}
-            {activeTab === 'analytics' && <AnalyticsView flights={flights} gates={gates} />}
-            {activeTab === 'ai' && <AIView flights={flights} setFlights={setFlights} gates={gates} />}
-            {activeTab === 'qr-iot' && <QRIoTView passengers={passengers} setPassengers={setPassengers} flights={flights} setFlights={setFlights} baggage={baggage} setBaggage={setBaggage} />}
-          </main>
+          )}
         </div>
       );
     }
 
-    // --- MODULE VIEWS ---
-    function FlightView({ flights, setFlights, gates }) {
-      const [type, setType] = useState('All');
-      const [search, setSearch] = useState('');
+    // ═══════════════════════════════════════════════════════
+    // 1. DASHBOARD VIEW
+    // ═══════════════════════════════════════════════════════
 
-      const filtered = flights.filter(f => {
-        const matchType = type === 'All' || f.type === type;
-        const matchSearch = f.flightNumber.toLowerCase().includes(search.toLowerCase()) || f.destination.toLowerCase().includes(search.toLowerCase()) || f.airline.toLowerCase().includes(search.toLowerCase());
-        return matchType && matchSearch;
-      });
+    function DashboardView({ db, currentUser, setActiveTab }) {
+      const kpis = [
+        { label:"Active Flights", val:db.metrics.activeFlights, icon:"✈️", color:"var(--accent-cyan)", tab:"flights" },
+        { label:"Passengers Today", val:db.metrics.passengersToday.toLocaleString(), icon:"👥", color:"var(--accent-emerald)", tab:"flights" },
+        { label:"Bags Processed", val:db.metrics.bagsProcessed.toLocaleString(), icon:"🛄", color:"var(--accent-blue)", tab:"baggage" },
+        { label:"Active Alerts", val:db.emergencies.filter(e=>e.status==='ACTIVE').length, icon:"🚨", color:"var(--accent-rose)", tab:"emergency" },
+        { label:"Gates Occupied", val:`${db.gates.filter(g=>g.status==='Occupied').length}/${db.gates.length}`, icon:"🚪", color:"var(--accent-purple)", tab:"gates" },
+        { label:"On-Time Perf.", val:db.metrics.onTimePerf, icon:"⏱️", color:"var(--accent-amber)", tab:"flights" },
+        { label:"Security Cleared", val:db.metrics.securityCleared.toLocaleString(), icon:"🛡️", color:"var(--accent-emerald)" },
+        { label:"Weather", val:db.metrics.weatherStatus, icon:"🌤️", color:"var(--accent-blue)" },
+        { label:"System Health", val:db.metrics.systemHealth, icon:"💚", color:"var(--accent-emerald)" }
+      ];
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <h2>Delhi Airport (DEL) Flight Schedule Management (FIDS)</h2>
-          <div className="glass-card" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <input className="form-input" placeholder="Search Flight # (e.g. AI-101, 6E-2015) or City..." value={search} onChange={e=>setSearch(e.target.value)} />
-            <select className="form-select" value={type} onChange={e=>setType(e.target.value)} style={{ width: '160px' }}>
-              <option value="All">All Movements</option>
-              <option value="Departure">Departures</option>
-              <option value="Arrival">Arrivals</option>
-            </select>
+        <div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+          <div>
+            <h2 style={{fontSize:'1.8rem',fontWeight:800}}>AAI Operations Control Center — DEL VIDP</h2>
+            {currentUser && <div style={{color:'var(--accent-cyan)',fontSize:'0.9rem',marginTop:'0.3rem'}}>Authenticated: <strong>{currentUser.name}</strong> ({currentUser.role})</div>}
+            {!currentUser && <div style={{color:'var(--text-secondary)',fontSize:'0.85rem',marginTop:'0.3rem'}}>Public Dashboard • Login for role-specific access</div>}
           </div>
 
-          <div className="table-container glass-card" style={{ padding: 0 }}>
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>Flight</th>
-                  <th>Airline</th>
-                  <th>Type</th>
-                  <th>Destination / Origin</th>
-                  <th>Sched. Time</th>
-                  <th>Terminal & Gate</th>
-                  <th>Status</th>
-                  <th>Load</th>
-                  <th>AI Risk</th>
-                </tr>
-              </thead>
+          <div className="grid-3">
+            {kpis.map((k,i)=>(
+              <div key={i} className="kpi-card" style={{cursor:k.tab?'pointer':'default'}} onClick={()=>k.tab&&setActiveTab(k.tab)}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                  <div>
+                    <div style={{fontSize:'0.75rem',color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.08em',fontWeight:600}}>{k.label}</div>
+                    <div style={{fontSize:'1.8rem',fontWeight:800,color:k.color,marginTop:'0.25rem',fontFamily:'var(--font-mono)'}}>{k.val}</div>
+                  </div>
+                  <div style={{fontSize:'2rem',opacity:0.6}}>{k.icon}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid-2">
+            <div className="glass-card">
+              <div className="card-header"><div className="card-title">✈️ Recent Flights</div></div>
+              <table style={{width:'100%',fontSize:'0.82rem',borderCollapse:'collapse'}}>
+                <thead><tr style={{borderBottom:'1px solid var(--border-color)',color:'var(--text-secondary)'}}>
+                  <th style={{padding:'0.5rem',textAlign:'left'}}>Flight</th><th style={{textAlign:'left'}}>Route</th><th style={{textAlign:'left'}}>Time</th><th style={{textAlign:'left'}}>Status</th>
+                </tr></thead>
+                <tbody>
+                  {db.flights.slice(0,6).map(f=>(
+                    <tr key={f.id} style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                      <td style={{padding:'0.5rem',fontWeight:600}}>{f.flightNumber}</td>
+                      <td style={{fontSize:'0.78rem',color:'var(--text-secondary)'}}>{f.type==='Departure'?`DEL → ${f.destination.match(/\((\w+)\)/)?.[1]||f.destination}`:`${f.origin.match(/\((\w+)\)/)?.[1]||f.origin} → DEL`}</td>
+                      <td style={{fontFamily:'var(--font-mono)',fontSize:'0.78rem'}}>{f.scheduledTime}</td>
+                      <td><span className={`badge ${f.status==='Delayed'?'badge-danger':f.status==='Boarding'||f.status==='Landed'?'badge-success':f.status==='In Flight'?'badge-warning':'badge-info'}`}>{f.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="glass-card">
+              <div className="card-header"><div className="card-title">🚨 Active Incidents</div></div>
+              {db.emergencies.filter(e=>e.status==='ACTIVE').length===0 ? (
+                <div style={{textAlign:'center',padding:'2rem',color:'var(--accent-emerald)'}}>✅ No active incidents</div>
+              ) : db.emergencies.filter(e=>e.status==='ACTIVE').map(e=>(
+                <div key={e.id} className="glass-card" style={{padding:'0.85rem',marginBottom:'0.75rem',borderColor:'var(--accent-rose)',animation:'pulse 2s infinite'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div><strong style={{color:'var(--accent-rose)'}}>{e.title}</strong><div style={{fontSize:'0.78rem',color:'var(--text-secondary)',marginTop:'0.2rem'}}>{e.location} • {e.severity}</div></div>
+                    <span className="badge badge-danger">{e.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 2. AIRPORT MAP VIEW
+    // ═══════════════════════════════════════════════════════
+
+    function MapView({ db }) {
+      return (
+        <div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+          <h2 style={{fontWeight:800}}>🗺️ Indira Gandhi International Airport — Terminal Layout</h2>
+          <div className="grid-3">
+            {['T1','T2','T3'].map(term=>{
+              const tGates = db.gates.filter(g=>g.terminal===term);
+              const occupied = tGates.filter(g=>g.status==='Occupied').length;
+              return (
+                <div key={term} className="glass-card">
+                  <div className="card-header"><div className="card-title">{term==='T1'?'🏢 Terminal 1 (Domestic)':term==='T2'?'🏢 Terminal 2 (Domestic)':'🏢 Terminal 3 (International)'}</div></div>
+                  <div style={{display:'flex',justifyContent:'space-around',textAlign:'center',marginBottom:'1rem'}}>
+                    <div><div style={{fontSize:'1.4rem',fontWeight:800,color:'var(--accent-cyan)'}}>{tGates.length}</div><div style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>Total Gates</div></div>
+                    <div><div style={{fontSize:'1.4rem',fontWeight:800,color:'var(--accent-emerald)'}}>{occupied}</div><div style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>Occupied</div></div>
+                    <div><div style={{fontSize:'1.4rem',fontWeight:800,color:'var(--accent-amber)'}}>{tGates.filter(g=>g.status==='Available').length}</div><div style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>Available</div></div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.4rem'}}>
+                    {tGates.map(g=>(
+                      <div key={g.id} style={{
+                        padding:'0.5rem 0.3rem',borderRadius:'var(--radius-sm)',textAlign:'center',fontSize:'0.7rem',fontWeight:700,
+                        background:g.status==='Occupied'?'rgba(16,185,129,0.2)':g.status==='Maintenance'?'rgba(244,63,94,0.2)':g.status==='Reserved'?'rgba(245,158,11,0.2)':'rgba(255,255,255,0.05)',
+                        border:`1px solid ${g.status==='Occupied'?'rgba(16,185,129,0.4)':g.status==='Maintenance'?'rgba(244,63,94,0.4)':g.status==='Reserved'?'rgba(245,158,11,0.4)':'var(--border-color)'}`,
+                        color:g.status==='Occupied'?'var(--accent-emerald)':g.status==='Maintenance'?'var(--accent-rose)':g.status==='Reserved'?'var(--accent-amber)':'var(--text-secondary)'
+                      }}>
+                        <div>{g.id.split('-')[1]}</div>
+                        <div style={{fontSize:'0.6rem',marginTop:'0.15rem'}}>{g.flight||g.status}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="glass-card">
+            <div className="card-header"><div className="card-title">🛫 Runway & Taxiway Status</div></div>
+            <div className="grid-3">
+              {[{name:'Runway 28/10',len:'4,430m',status:'Active',cat:'CAT-III B',traffic:'High'},{name:'Runway 29/11',len:'3,810m',status:'Active',cat:'CAT-I',traffic:'Moderate'},{name:'Runway 27/09',len:'2,871m',status:'Under Maintenance',cat:'N/A',traffic:'Closed'}].map((r,i)=>(
+                <div key={i} style={{padding:'1rem',border:'1px solid var(--border-color)',borderRadius:'var(--radius-md)',background:'rgba(0,0,0,0.2)'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.5rem'}}>
+                    <strong>{r.name}</strong>
+                    <span className={`badge ${r.status==='Active'?'badge-success':'badge-danger'}`}>{r.status}</span>
+                  </div>
+                  <div style={{fontSize:'0.8rem',color:'var(--text-secondary)'}}>Length: {r.len} • ILS: {r.cat} • Traffic: {r.traffic}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 3. FLIGHTS FIDS VIEW
+    // ═══════════════════════════════════════════════════════
+
+    function FlightsView({ db, setDb, isAdmin, isATC, addToast, appendAuditLog, searchQuery }) {
+      const [showAddModal, setShowAddModal] = useState(false);
+      const [editId, setEditId] = useState(null);
+      const [flightForm, setFlightForm] = useState({flightNumber:'',airline:'',type:'Departure',destination:'',origin:'Delhi (DEL)',scheduledTime:'',estimatedTime:'',terminal:'T3',gate:'',status:'Scheduled',pax:0,maxPax:186,bags:0,aircraft:'',aiDelayRisk:0,boardingPct:0});
+      const [filterType, setFilterType] = useState('ALL');
+      const [filterStatus, setFilterStatus] = useState('ALL');
+
+      const filtered = db.flights.filter(f => {
+        if(filterType!=='ALL' && f.type!==filterType) return false;
+        if(filterStatus!=='ALL' && f.status!==filterStatus) return false;
+        if(searchQuery && !f.flightNumber.toLowerCase().includes(searchQuery.toLowerCase()) && !f.airline.toLowerCase().includes(searchQuery.toLowerCase()) && !f.destination.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+      });
+
+      const handleSaveFlight = (e) => {
+        e.preventDefault();
+        if(editId) {
+          setDb(prev=>({...prev,flights:prev.flights.map(f=>f.id===editId?{...f,...flightForm}:f)}));
+          appendAuditLog('FLIGHT_UPDATE',`Updated ${flightForm.flightNumber}`);
+          addToast(`Flight ${flightForm.flightNumber} updated!`,'success');
+        } else {
+          const nf = {id:`FL-${Date.now().toString().slice(-3)}`,...flightForm};
+          setDb(prev=>({...prev,flights:[...prev.flights,nf]}));
+          appendAuditLog('FLIGHT_CREATE',`Created flight ${flightForm.flightNumber}`);
+          addToast(`Flight ${flightForm.flightNumber} added!`,'success');
+        }
+        setShowAddModal(false); setEditId(null);
+      };
+
+      const handleDeleteFlight = (id, fn) => {
+        setDb(prev=>({...prev,flights:prev.flights.filter(f=>f.id!==id)}));
+        appendAuditLog('FLIGHT_DELETE',`Deleted flight ${fn}`);
+        addToast(`Flight ${fn} deleted`,'danger');
+      };
+
+      const openEdit = (f) => {
+        setFlightForm({flightNumber:f.flightNumber,airline:f.airline,type:f.type,destination:f.destination,origin:f.origin,scheduledTime:f.scheduledTime,estimatedTime:f.estimatedTime,terminal:f.terminal,gate:f.gate,status:f.status,pax:f.pax,maxPax:f.maxPax,bags:f.bags,aircraft:f.aircraft,aiDelayRisk:f.aiDelayRisk,boardingPct:f.boardingPct});
+        setEditId(f.id); setShowAddModal(true);
+      };
+
+      return (
+        <div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'1rem'}}>
+            <h2 style={{fontWeight:800}}>✈️ Flight Information Display System (FIDS)</h2>
+            <div style={{display:'flex',gap:'0.5rem',flexWrap:'wrap'}}>
+              <select className="form-select" value={filterType} onChange={e=>setFilterType(e.target.value)} style={{width:'auto'}}><option value="ALL">All Types</option><option value="Departure">Departures</option><option value="Arrival">Arrivals</option></select>
+              <select className="form-select" value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={{width:'auto'}}><option value="ALL">All Status</option><option value="Boarding">Boarding</option><option value="Delayed">Delayed</option><option value="On Time">On Time</option><option value="Landed">Landed</option><option value="In Flight">In Flight</option><option value="Scheduled">Scheduled</option><option value="Check-in Open">Check-in Open</option></select>
+              {isAdmin && <button className="btn btn-primary" onClick={()=>{setFlightForm({flightNumber:'',airline:'',type:'Departure',destination:'',origin:'Delhi (DEL)',scheduledTime:'',estimatedTime:'',terminal:'T3',gate:'',status:'Scheduled',pax:0,maxPax:186,bags:0,aircraft:'',aiDelayRisk:0,boardingPct:0});setEditId(null);setShowAddModal(true);}}>+ Add Flight</button>}
+            </div>
+          </div>
+
+          <div className="glass-card" style={{overflowX:'auto'}}>
+            <table style={{width:'100%',fontSize:'0.82rem',borderCollapse:'collapse',minWidth:'900px'}}>
+              <thead><tr style={{borderBottom:'2px solid var(--border-color)',color:'var(--text-secondary)',fontSize:'0.75rem',textTransform:'uppercase',letterSpacing:'0.05em'}}>
+                <th style={{padding:'0.75rem',textAlign:'left'}}>Flight</th><th style={{textAlign:'left'}}>Airline</th><th style={{textAlign:'left'}}>Route</th><th style={{textAlign:'left'}}>STD/STA</th><th style={{textAlign:'left'}}>ETD/ETA</th><th style={{textAlign:'left'}}>Terminal</th><th style={{textAlign:'left'}}>Gate</th><th style={{textAlign:'left'}}>Aircraft</th><th style={{textAlign:'left'}}>Status</th><th style={{textAlign:'left'}}>Pax</th><th style={{textAlign:'left'}}>AI Risk</th>
+                {isAdmin && <th style={{textAlign:'center'}}>Actions</th>}
+              </tr></thead>
               <tbody>
-                {filtered.map(f => (
-                  <tr key={f.id}>
-                    <td style={{ fontWeight: 800, color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>{f.flightNumber}</td>
+                {filtered.map(f=>(
+                  <tr key={f.id} style={{borderBottom:'1px solid rgba(255,255,255,0.04)',transition:'background 0.2s'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.03)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    <td style={{padding:'0.75rem',fontWeight:700,color:'var(--accent-cyan)'}}>{f.flightNumber}</td>
                     <td>{f.airline}</td>
-                    <td><span className="badge badge-info">{f.type}</span></td>
-                    <td>{f.type==='Departure'?f.destination:f.origin}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>{f.scheduledTime}</td>
-                    <td><span className="badge badge-purple">{f.terminal} • {f.gate}</span></td>
-                    <td><span className={`badge ${f.status==='Boarding'?'badge-info':f.status==='Delayed'?'badge-danger':'badge-success'}`}>{f.status}</span></td>
-                    <td>{f.passengersCount} / {f.maxCapacity}</td>
-                    <td><span className={`badge ${f.aiDelayRisk>50?'badge-danger':'badge-success'}`}>{f.aiDelayRisk}% Risk</span></td>
+                    <td style={{fontSize:'0.78rem',color:'var(--text-secondary)'}}>{f.type==='Departure'?`DEL → ${f.destination.match(/\((\w+)\)/)?.[1]||''}`:`${f.origin.match(/\((\w+)\)/)?.[1]||''} → DEL`}</td>
+                    <td style={{fontFamily:'var(--font-mono)'}}>{f.scheduledTime}</td>
+                    <td style={{fontFamily:'var(--font-mono)',color:f.estimatedTime!==f.scheduledTime?'var(--accent-rose)':'var(--accent-emerald)'}}>{f.estimatedTime}</td>
+                    <td>{f.terminal}</td>
+                    <td>{f.gate}</td>
+                    <td style={{fontSize:'0.76rem',color:'var(--text-secondary)'}}>{f.aircraft}</td>
+                    <td><span className={`badge ${f.status==='Delayed'?'badge-danger':f.status==='Boarding'||f.status==='Landed'?'badge-success':f.status==='In Flight'?'badge-warning':'badge-info'}`}>{f.status}</span></td>
+                    <td>{f.pax}/{f.maxPax}</td>
+                    <td><div style={{width:'40px',height:'6px',borderRadius:'3px',background:'rgba(255,255,255,0.1)',overflow:'hidden'}}><div style={{width:`${f.aiDelayRisk}%`,height:'100%',background:f.aiDelayRisk>50?'var(--accent-rose)':f.aiDelayRisk>20?'var(--accent-amber)':'var(--accent-emerald)',borderRadius:'3px'}}></div></div><span style={{fontSize:'0.7rem',color:'var(--text-muted)'}}>{f.aiDelayRisk}%</span></td>
+                    {isAdmin && <td style={{textAlign:'center'}}><button className="btn btn-secondary" style={{padding:'0.2rem 0.4rem',fontSize:'0.7rem',marginRight:'0.25rem'}} onClick={()=>openEdit(f)}>✏️</button><button className="btn btn-secondary" style={{padding:'0.2rem 0.4rem',fontSize:'0.7rem',color:'var(--accent-rose)'}} onClick={()=>handleDeleteFlight(f.id,f.flightNumber)}>🗑️</button></td>}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {showAddModal && (
+            <div className="modal-overlay" onClick={e=>{if(e.target.className.includes('modal-overlay')){setShowAddModal(false);setEditId(null);}}}>
+              <div className="modal-card" style={{maxWidth:'700px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'1rem'}}><h3 style={{color:'var(--accent-cyan)'}}>{editId?'✏️ Edit Flight':'➕ Add New Flight'}</h3><button className="btn btn-secondary" onClick={()=>{setShowAddModal(false);setEditId(null);}}>✕</button></div>
+                <form onSubmit={handleSaveFlight} style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Flight Number</label><input required className="form-input" value={flightForm.flightNumber} onChange={e=>setFlightForm({...flightForm,flightNumber:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Airline</label><input required className="form-input" value={flightForm.airline} onChange={e=>setFlightForm({...flightForm,airline:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Type</label><select className="form-select" value={flightForm.type} onChange={e=>setFlightForm({...flightForm,type:e.target.value})}><option value="Departure">Departure</option><option value="Arrival">Arrival</option></select></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Status</label><select className="form-select" value={flightForm.status} onChange={e=>setFlightForm({...flightForm,status:e.target.value})}><option>Scheduled</option><option>Check-in Open</option><option>Boarding</option><option>Delayed</option><option>In Flight</option><option>Landed</option><option>On Time</option><option>Cancelled</option></select></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Origin</label><input required className="form-input" value={flightForm.origin} onChange={e=>setFlightForm({...flightForm,origin:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Destination</label><input required className="form-input" value={flightForm.destination} onChange={e=>setFlightForm({...flightForm,destination:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Scheduled Time</label><input required className="form-input" value={flightForm.scheduledTime} onChange={e=>setFlightForm({...flightForm,scheduledTime:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Estimated Time</label><input required className="form-input" value={flightForm.estimatedTime} onChange={e=>setFlightForm({...flightForm,estimatedTime:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Terminal</label><select className="form-select" value={flightForm.terminal} onChange={e=>setFlightForm({...flightForm,terminal:e.target.value})}><option>T1</option><option>T2</option><option>T3</option></select></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Gate</label><input className="form-input" value={flightForm.gate} onChange={e=>setFlightForm({...flightForm,gate:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Aircraft</label><input className="form-input" value={flightForm.aircraft} onChange={e=>setFlightForm({...flightForm,aircraft:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>AI Delay Risk %</label><input type="number" className="form-input" value={flightForm.aiDelayRisk} onChange={e=>setFlightForm({...flightForm,aiDelayRisk:parseInt(e.target.value)||0})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Passengers</label><input type="number" className="form-input" value={flightForm.pax} onChange={e=>setFlightForm({...flightForm,pax:parseInt(e.target.value)||0})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Max Capacity</label><input type="number" className="form-input" value={flightForm.maxPax} onChange={e=>setFlightForm({...flightForm,maxPax:parseInt(e.target.value)||0})} /></div>
+                  <div style={{gridColumn:'1/-1'}}><button type="submit" className="btn btn-primary" style={{width:'100%'}}>{editId?'Save Changes':'Add Flight'}</button></div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
 
-    function PassengerView({ passengers, flights }) {
-      const [pnr, setPnr] = useState('PNR-DEL-9081');
-      const selected = passengers.find(p => p.pnr === pnr) || passengers[0];
-      const matchedFlight = flights.find(f => f.flightNumber === selected?.flightNumber) || flights[0];
-      const qrRef = useRef(null);
+    // ═══════════════════════════════════════════════════════
+    // 4. GATES VIEW
+    // ═══════════════════════════════════════════════════════
 
-      useEffect(() => {
-        if (selected && qrRef.current && window.QRCode) {
-          qrRef.current.innerHTML = '';
-          QRCode.toCanvas(JSON.stringify({ pnr: selected.pnr, name: selected.name, flight: selected.flightNumber, gate: matchedFlight.gate, airport: 'DEL/AAI' }), { width: 140 }, (err, canvas) => {
-            if (!err) qrRef.current.appendChild(canvas);
-          });
+    function GatesView({ db, setDb, isAdmin, isGroundOrAirline, addToast, appendAuditLog }) {
+      const [showAddModal, setShowAddModal] = useState(false);
+      const [editId, setEditId] = useState(null);
+      const [gateForm, setGateForm] = useState({id:'',terminal:'T3',status:'Available',flight:null,type:'Widebody',pax:0,compat:''});
+
+      const handleSaveGate = (e) => {
+        e.preventDefault();
+        if(editId) {
+          setDb(prev=>({...prev,gates:prev.gates.map(g=>g.id===editId?{...g,...gateForm,id:editId}:g)}));
+          appendAuditLog('GATE_UPDATE',`Updated gate ${editId}`);
+          addToast(`Gate ${editId} updated!`,'success');
+        } else {
+          setDb(prev=>({...prev,gates:[...prev.gates,gateForm]}));
+          appendAuditLog('GATE_CREATE',`Created gate ${gateForm.id}`);
+          addToast(`Gate ${gateForm.id} added!`,'success');
         }
-      }, [selected]);
+        setShowAddModal(false); setEditId(null);
+      };
 
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <h2>Passenger Information & DigiYatra Portal (AAI DEL)</h2>
-          <div className="glass-card" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            {passengers.map(p => (
-              <button key={p.pnr} className={`btn ${selected.pnr===p.pnr?'btn-primary':'btn-secondary'}`} onClick={()=>setPnr(p.pnr)}>
-                {p.pnr} ({p.name})
-              </button>
-            ))}
-          </div>
-
-          <div className="grid-2">
-            <div className="glass-card" style={{ border: '1px solid var(--accent-cyan)' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>AIRPORT AUTHORITY OF INDIA • DIGITAL BOARDING PASS</div>
-              <h3 style={{ color: 'var(--accent-cyan)', margin: '0.5rem 0' }}>{matchedFlight.airline}</h3>
-              <div style={{ display: 'flex', justifyContent: 'space-between', margin: '1rem 0' }}>
-                <div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>PASSENGER NAME</div>
-                  <div style={{ fontWeight: 800, fontSize: '1.2rem' }}>{selected.name}</div>
-                  <div style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>PNR: {selected.pnr}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>FLIGHT NO.</div>
-                  <div style={{ fontWeight: 800, fontSize: '1.4rem', color: 'var(--accent-blue)', fontFamily: 'var(--font-mono)' }}>{matchedFlight.flightNumber}</div>
-                </div>
-              </div>
-              <div className="grid-4" style={{ textAlign: 'center', background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '8px' }}>
-                <div><div>TERMINAL & GATE</div><strong style={{ color: 'var(--accent-amber)' }}>{matchedFlight.gate}</strong></div>
-                <div><div>SEAT</div><strong>{selected.seat}</strong></div>
-                <div><div>CLASS</div><strong style={{ color: 'var(--accent-purple)' }}>{selected.class}</strong></div>
-                <div><div>DEP TIME</div><strong>{matchedFlight.scheduledTime} IST</strong></div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
-                <div><div>DigiYatra Face / QR Gate Pass</div><div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tag ID: {selected.tagId}</div></div>
-                <div ref={qrRef} style={{ background: '#fff', padding: '4px', borderRadius: '6px' }}></div>
-              </div>
-            </div>
-
-            <div className="glass-card">
-              <h3>Delhi Airport (DEL) Terminal Services Locator</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
-                <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                  <strong>CISF Central Security Checkpoint (T3)</strong> — Live Wait: <span style={{ color: 'var(--accent-emerald)' }}>6 mins (DigiYatra Express Lane)</span>
-                </div>
-                <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                  <strong>Encalm VIP Lounge & Air India Maharaja Lounge</strong> — T3 Concourse Level 3
-                </div>
-                <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                  <strong>Delhi Duty Free Plaza</strong> — T3 International Departures
-                </div>
-                <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                  <strong>Celebi Baggage Carousel 08</strong> — Status: Active & Synced
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    function GateView({ gates, setGates, flights }) {
-      const runAuto = () => {
-        setGates(prev => prev.map(g => g.status==='Available'?{...g, status:'Occupied', assignedFlight:'AAI-AUTO-ALLOCATED'}:g));
-        alert('AAI Gate Auto-Allocation Completed! Unassigned flights successfully routed to open gates at T1, T2 & T3.');
+      const handleDeleteGate = (id) => {
+        setDb(prev=>({...prev,gates:prev.gates.filter(g=>g.id!==id)}));
+        appendAuditLog('GATE_DELETE',`Deleted gate ${id}`);
+        addToast(`Gate ${id} deleted`,'danger');
       };
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>AAI Delhi Airport Gate Allocation Matrix</h2>
-            <button className="btn btn-primary" onClick={runAuto}>Run AAI Smart Auto-Allocation</button>
+        <div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <h2 style={{fontWeight:800}}>🚪 Intelligent Gate Allocation Matrix</h2>
+            {isAdmin && <button className="btn btn-primary" onClick={()=>{setGateForm({id:'',terminal:'T3',status:'Available',flight:null,type:'Widebody',pax:0,compat:''});setEditId(null);setShowAddModal(true);}}>+ Add Gate</button>}
           </div>
-
-          <div className="grid-3">
-            {gates.map(g => (
-              <div key={g.id} className="glass-card" style={{ borderLeft: `4px solid ${g.status==='Available'?'var(--accent-emerald)':g.status==='Occupied'?'var(--accent-cyan)':'var(--accent-amber)'}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <span style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{g.id}</span>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{g.terminal}</div>
-                  </div>
-                  <span className={`badge ${g.status==='Available'?'badge-success':'badge-info'}`}>{g.status}</span>
-                </div>
-                <div style={{ marginTop: '0.75rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Assigned Flight</div>
-                  <strong style={{ color: 'var(--accent-cyan)' }}>{g.assignedFlight || 'None (Open)'}</strong>
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Category: {g.size}</div>
-              </div>
-            ))}
+          <div style={{display:'flex',gap:'1rem',flexWrap:'wrap'}}>
+            {['Available','Occupied','Reserved','Maintenance'].map(s=>{
+              const count = db.gates.filter(g=>g.status===s).length;
+              return <div key={s} className="glass-card" style={{padding:'0.75rem 1.25rem',flex:'1',minWidth:'120px',textAlign:'center'}}>
+                <div style={{fontSize:'1.5rem',fontWeight:800,color:s==='Available'?'var(--accent-emerald)':s==='Occupied'?'var(--accent-cyan)':s==='Reserved'?'var(--accent-amber)':'var(--accent-rose)'}}>{count}</div>
+                <div style={{fontSize:'0.75rem',color:'var(--text-secondary)',marginTop:'0.2rem'}}>{s}</div>
+              </div>;
+            })}
           </div>
-        </div>
-      );
-    }
-
-    function StaffView({ staff, setStaff }) {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <h2>CISF & AAI Delhi Airport Workforce Directory</h2>
-          <div className="grid-3">
-            {staff.map(s => (
-              <div key={s.id} className="glass-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div>
-                    <strong style={{ fontSize: '1.1rem' }}>{s.name}</strong>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)' }}>{s.id}</div>
-                  </div>
-                  <span className="badge badge-success">{s.shiftStatus}</span>
-                </div>
-                <div style={{ margin: '0.75rem 0', fontSize: '0.85rem' }}>Role: {s.role} • Station: {s.location}</div>
-                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '6px', fontSize: '0.8rem' }}>
-                  Active Assignment: {s.assignedTask}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    function EmergencyView({ alerts, setAlerts }) {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <h2>Airport Authority of India Incident Command</h2>
-          <div className="grid-2">
-            <div className="glass-card">
-              <h3>Active AAI Operational Alerts</h3>
-              {alerts.map(a => (
-                <div key={a.id} style={{ background: 'rgba(244,63,94,0.15)', border: '1px solid var(--accent-rose)', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <strong>{a.title}</strong>
-                    <span className="badge badge-danger">{a.severity}</span>
-                  </div>
-                  <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>{a.message}</p>
-                </div>
-              ))}
-            </div>
-            <div className="glass-card">
-              <h3>AAI Low Visibility & Safety Protocol Checklist</h3>
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
-                <li style={{ color: 'var(--accent-emerald)' }}>✓ Activate CAT-III B Instrument Landing System (ILS) on Runway 28/10</li>
-                <li style={{ color: 'var(--accent-emerald)' }}>✓ Issue CISF Aviation Security Advisory for Low Visibility</li>
-                <li>[ ] Alert Celebi & Bird Group Apron Surface Control</li>
-                <li>[ ] Initiate Follow-Me Vehicle Escort for Ground Taxiing</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    function AnalyticsView({ flights, gates }) {
-      const chartRef = useRef(null);
-
-      useEffect(() => {
-        if (chartRef.current && window.Chart) {
-          const ctx = chartRef.current.getContext('2d');
-          const chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-              labels: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
-              datasets: [
-                { label: 'DEL Departing Pax', data: [3800, 5200, 4600, 3900, 4100, 5800, 6200, 4900], backgroundColor: '#00f2fe' },
-                { label: 'DEL Arriving Pax', data: [3100, 4400, 4900, 3500, 3900, 5100, 5900, 4200], backgroundColor: '#8b5cf6' }
-              ]
-            },
-            options: { responsive: true, plugins: { legend: { labels: { color: '#fff' } } } }
-          });
-          return () => chart.destroy();
-        }
-      }, []);
-
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <h2>Delhi Airport (DEL) Operations Analytics</h2>
           <div className="grid-4">
-            <div className="kpi-card"><div><div>AAI OTP RATE</div><div className="kpi-val" style={{ color: 'var(--accent-emerald)' }}>91.8%</div></div></div>
-            <div className="kpi-card"><div><div>HOURLY PAX FLOW</div><div className="kpi-val" style={{ color: 'var(--accent-cyan)' }}>6,200 pax/h</div></div></div>
-            <div className="kpi-card"><div><div>GATE UTILIZATION</div><div className="kpi-val" style={{ color: 'var(--accent-amber)' }}>84%</div></div></div>
-            <div className="kpi-card"><div><div>AVG BAGGAGE TIME</div><div className="kpi-val" style={{ color: 'var(--accent-purple)' }}>13.5 min</div></div></div>
+            {db.gates.map(g=>(
+              <div key={g.id} className="glass-card" style={{padding:'1rem',borderColor:g.status==='Occupied'?'rgba(16,185,129,0.4)':g.status==='Maintenance'?'rgba(244,63,94,0.4)':g.status==='Reserved'?'rgba(245,158,11,0.4)':'var(--border-color)'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.5rem'}}>
+                  <strong style={{fontSize:'1rem',color:'var(--accent-cyan)'}}>{g.id}</strong>
+                  <span className={`badge ${g.status==='Occupied'?'badge-success':g.status==='Available'?'badge-info':g.status==='Reserved'?'badge-warning':'badge-danger'}`}>{g.status}</span>
+                </div>
+                <div style={{fontSize:'0.8rem',color:'var(--text-secondary)',display:'flex',flexDirection:'column',gap:'0.2rem'}}>
+                  <div>Terminal: {g.terminal}</div>
+                  <div>Type: {g.type}</div>
+                  <div>Compat: {g.compat}</div>
+                  {g.flight && <div>Flight: <strong style={{color:'var(--accent-emerald)'}}>{g.flight}</strong></div>}
+                  {g.pax>0 && <div>Passengers: {g.pax}</div>}
+                </div>
+                {isAdmin && (
+                  <div style={{display:'flex',gap:'0.3rem',marginTop:'0.5rem'}}>
+                    <button className="btn btn-secondary" style={{flex:1,padding:'0.25rem',fontSize:'0.7rem'}} onClick={()=>{setGateForm({...g});setEditId(g.id);setShowAddModal(true);}}>✏️ Edit</button>
+                    <button className="btn btn-secondary" style={{padding:'0.25rem',fontSize:'0.7rem',color:'var(--accent-rose)'}} onClick={()=>handleDeleteGate(g.id)}>🗑️</button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-          <div className="glass-card">
-            <h3>Hourly Passenger Throughput (DEL T1, T2 & T3)</h3>
-            <canvas ref={chartRef}></canvas>
-          </div>
+
+          {showAddModal && (
+            <div className="modal-overlay" onClick={e=>{if(e.target.className.includes('modal-overlay')){setShowAddModal(false);setEditId(null);}}}>
+              <div className="modal-card">
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'1rem'}}><h3 style={{color:'var(--accent-cyan)'}}>{editId?'✏️ Edit Gate':'➕ Add Gate'}</h3><button className="btn btn-secondary" onClick={()=>{setShowAddModal(false);setEditId(null);}}>✕</button></div>
+                <form onSubmit={handleSaveGate} style={{display:'flex',flexDirection:'column',gap:'0.75rem'}}>
+                  {!editId && <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Gate ID</label><input required className="form-input" placeholder="T3-G99" value={gateForm.id} onChange={e=>setGateForm({...gateForm,id:e.target.value})} /></div>}
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Terminal</label><select className="form-select" value={gateForm.terminal} onChange={e=>setGateForm({...gateForm,terminal:e.target.value})}><option>T1</option><option>T2</option><option>T3</option></select></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Status</label><select className="form-select" value={gateForm.status} onChange={e=>setGateForm({...gateForm,status:e.target.value})}><option>Available</option><option>Occupied</option><option>Reserved</option><option>Maintenance</option></select></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Assigned Flight</label><input className="form-input" value={gateForm.flight||''} onChange={e=>setGateForm({...gateForm,flight:e.target.value||null})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Type</label><select className="form-select" value={gateForm.type} onChange={e=>setGateForm({...gateForm,type:e.target.value})}><option>Narrowbody</option><option>Widebody</option></select></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Compatibility</label><input className="form-input" value={gateForm.compat} onChange={e=>setGateForm({...gateForm,compat:e.target.value})} /></div>
+                  <button type="submit" className="btn btn-primary">{editId?'Save Changes':'Add Gate'}</button>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
 
-    function AIView({ flights, setFlights, gates }) {
-      const [fog, setFog] = useState(65);
+    // ═══════════════════════════════════════════════════════
+    // 5. EMERGENCY VIEW
+    // ═══════════════════════════════════════════════════════
+
+    function EmergencyView({ db, setDb, isAdmin, isCISF, addToast, appendAuditLog }) {
+      const [showAddModal, setShowAddModal] = useState(false);
+      const [editId, setEditId] = useState(null);
+      const [emgForm, setEmgForm] = useState({category:'Medical Emergency',severity:'Code Yellow',title:'',location:'',responders:'',notes:'',status:'ACTIVE',escalated:false});
+
+      const handleSaveEmg = (e) => {
+        e.preventDefault();
+        if(editId) {
+          setDb(prev=>({...prev,emergencies:prev.emergencies.map(em=>em.id===editId?{...em,...emgForm}:em)}));
+          appendAuditLog('EMERGENCY_UPDATE',`Updated ${emgForm.title}`);
+          addToast('Emergency updated!','success');
+        } else {
+          const ne = {id:`EMG-${Date.now().toString().slice(-3)}`,...emgForm,timestamp:new Date().toLocaleString()+' IST'};
+          setDb(prev=>({...prev,emergencies:[ne,...prev.emergencies]}));
+          appendAuditLog('EMERGENCY_CREATE',`Created: ${emgForm.title}`);
+          addToast('🚨 Emergency incident created!','danger');
+        }
+        setShowAddModal(false); setEditId(null);
+      };
+
+      const handleDeleteEmg = (id) => {
+        setDb(prev=>({...prev,emergencies:prev.emergencies.filter(e=>e.id!==id)}));
+        appendAuditLog('EMERGENCY_DELETE',`Deleted incident ${id}`);
+        addToast('Emergency archived','info');
+      };
+
+      const resolveEmg = (id) => {
+        setDb(prev=>({...prev,emergencies:prev.emergencies.map(e=>e.id===id?{...e,status:'RESOLVED'}:e)}));
+        appendAuditLog('EMERGENCY_RESOLVE',`Resolved incident ${id}`);
+        addToast('✅ Emergency resolved!','success');
+      };
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <h2>AI Fog & Runway Delay Prediction Engine (DEL)</h2>
-          <div className="glass-card">
-            <h3>Northern India Winter Fog & RVR Intensity Slider</h3>
-            <div style={{ margin: '1rem 0' }}>
-              <label>Simulated Fog Density (CAT-III Risk): <strong>{fog}%</strong></label>
-              <input type="range" min="0" max="100" value={fog} onChange={e=>setFog(e.target.value)} style={{ width: '100%' }} />
-            </div>
+        <div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <h2 style={{fontWeight:800}}>🚨 Emergency Command Center</h2>
+            {(isAdmin || isCISF) && <button className="btn btn-primary" onClick={()=>{setEmgForm({category:'Medical Emergency',severity:'Code Yellow',title:'',location:'',responders:'',notes:'',status:'ACTIVE',escalated:false});setEditId(null);setShowAddModal(true);}}>+ Report Incident</button>}
           </div>
 
+          <div style={{display:'flex',gap:'1rem',flexWrap:'wrap'}}>
+            {[{label:'Active',filter:'ACTIVE',color:'var(--accent-rose)'},{label:'Resolved',filter:'RESOLVED',color:'var(--accent-emerald)'},{label:'Escalated',filter:null,color:'var(--accent-amber)'}].map(s=>(
+              <div key={s.label} className="glass-card" style={{padding:'0.75rem 1.25rem',flex:1,minWidth:'120px',textAlign:'center'}}>
+                <div style={{fontSize:'1.5rem',fontWeight:800,color:s.color}}>{s.filter?db.emergencies.filter(e=>e.status===s.filter).length:db.emergencies.filter(e=>e.escalated).length}</div>
+                <div style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {db.emergencies.map(e=>(
+            <div key={e.id} className="glass-card" style={{borderColor:e.status==='ACTIVE'?'rgba(244,63,94,0.5)':'rgba(16,185,129,0.3)',borderWidth:e.status==='ACTIVE'?'2px':'1px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:'0.5rem'}}>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'0.5rem',marginBottom:'0.3rem'}}>
+                    <span className={`badge ${e.status==='ACTIVE'?'badge-danger':'badge-success'}`}>{e.status}</span>
+                    <span className="badge badge-warning">{e.severity}</span>
+                    <span className="badge badge-info">{e.category}</span>
+                    {e.escalated && <span className="badge badge-danger">ESCALATED</span>}
+                  </div>
+                  <h3 style={{fontSize:'1.1rem',marginTop:'0.3rem'}}>{e.title}</h3>
+                  <div style={{fontSize:'0.82rem',color:'var(--text-secondary)',marginTop:'0.3rem',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.25rem 1rem'}}>
+                    <div>📍 Location: {e.location}</div>
+                    <div>👤 Responders: {e.responders}</div>
+                    <div>🕐 Reported: {e.timestamp}</div>
+                    <div>📋 ID: {e.id}</div>
+                  </div>
+                  {e.notes && <div style={{marginTop:'0.5rem',padding:'0.5rem',background:'rgba(0,0,0,0.2)',borderRadius:'var(--radius-sm)',fontSize:'0.82rem',color:'var(--text-secondary)',borderLeft:'3px solid var(--accent-amber)'}}>{e.notes}</div>}
+                </div>
+                <div style={{display:'flex',gap:'0.3rem'}}>
+                  {e.status==='ACTIVE' && (isAdmin||isCISF) && <button className="btn btn-primary" style={{fontSize:'0.75rem',padding:'0.3rem 0.6rem'}} onClick={()=>resolveEmg(e.id)}>✅ Resolve</button>}
+                  {isAdmin && <button className="btn btn-secondary" style={{fontSize:'0.75rem',padding:'0.3rem 0.5rem'}} onClick={()=>{setEmgForm({category:e.category,severity:e.severity,title:e.title,location:e.location,responders:e.responders,notes:e.notes,status:e.status,escalated:e.escalated});setEditId(e.id);setShowAddModal(true);}}>✏️</button>}
+                  {isAdmin && <button className="btn btn-secondary" style={{fontSize:'0.75rem',padding:'0.3rem 0.5rem',color:'var(--accent-rose)'}} onClick={()=>handleDeleteEmg(e.id)}>🗑️</button>}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {showAddModal && (
+            <div className="modal-overlay" onClick={e=>{if(e.target.className.includes('modal-overlay')){setShowAddModal(false);setEditId(null);}}}>
+              <div className="modal-card" style={{maxWidth:'600px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'1rem'}}><h3 style={{color:'var(--accent-rose)'}}>{editId?'✏️ Edit Incident':'🚨 Report New Incident'}</h3><button className="btn btn-secondary" onClick={()=>{setShowAddModal(false);setEditId(null);}}>✕</button></div>
+                <form onSubmit={handleSaveEmg} style={{display:'flex',flexDirection:'column',gap:'0.75rem'}}>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Category</label><select className="form-select" value={emgForm.category} onChange={e=>setEmgForm({...emgForm,category:e.target.value})}>{EMERGENCY_CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Severity</label><select className="form-select" value={emgForm.severity} onChange={e=>setEmgForm({...emgForm,severity:e.target.value})}><option>Code Green</option><option>Code Yellow</option><option>Code Orange</option><option>Code Red</option><option>Code Blue</option></select></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Title</label><input required className="form-input" value={emgForm.title} onChange={e=>setEmgForm({...emgForm,title:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Location</label><input required className="form-input" value={emgForm.location} onChange={e=>setEmgForm({...emgForm,location:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Assigned Responders</label><input className="form-input" value={emgForm.responders} onChange={e=>setEmgForm({...emgForm,responders:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Notes</label><textarea className="form-input" rows="3" value={emgForm.notes} onChange={e=>setEmgForm({...emgForm,notes:e.target.value})}></textarea></div>
+                  <div style={{display:'flex',gap:'1rem',alignItems:'center'}}><label style={{fontSize:'0.8rem'}}><input type="checkbox" checked={emgForm.escalated} onChange={e=>setEmgForm({...emgForm,escalated:e.target.checked})} /> Escalated</label></div>
+                  <button type="submit" className="btn btn-primary">{editId?'Save Changes':'Report Incident'}</button>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 6. FLEET HEALTH VIEW
+    // ═══════════════════════════════════════════════════════
+
+    function FleetHealthView({ db, setDb, isAdmin, addToast, appendAuditLog }) {
+      const getHealthColor = (pct) => {
+        const v = parseInt(pct);
+        if(v>=90) return 'var(--accent-emerald)';
+        if(v>=70) return 'var(--accent-amber)';
+        return 'var(--accent-rose)';
+      };
+
+      return (
+        <div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+          <h2 style={{fontWeight:800}}>🛠️ Fleet Health & Predictive Maintenance</h2>
           <div className="grid-2">
-            {flights.map(f => (
-              <div key={f.id} className="glass-card" style={{ borderLeft: `4px solid ${f.aiDelayRisk>50?'var(--accent-rose)':'var(--accent-emerald)'}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <strong style={{ fontSize: '1.2rem', color: 'var(--accent-cyan)' }}>{f.flightNumber} ({f.airline})</strong>
-                  <span className={`badge ${f.aiDelayRisk>50?'badge-danger':'badge-success'}`}>{f.aiDelayRisk}% Risk</span>
+            {db.fleetHealth.map(fh=>(
+              <div key={fh.id} className="glass-card" style={{borderColor:fh.status==='Airworthy'?'rgba(16,185,129,0.3)':fh.status==='Conditional'?'rgba(245,158,11,0.3)':'rgba(244,63,94,0.3)'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.75rem'}}>
+                  <div>
+                    <strong style={{fontSize:'1rem'}}>{fh.aircraft}</strong>
+                    <div style={{fontSize:'0.8rem',color:'var(--accent-cyan)',marginTop:'0.15rem'}}>Flight: {fh.flight}</div>
+                  </div>
+                  <span className={`badge ${fh.status==='Airworthy'?'badge-success':fh.status==='Conditional'?'badge-warning':'badge-danger'}`}>{fh.status}</span>
                 </div>
-                <div style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}>Route: {f.type==='Departure'?`DEL ➔ ${f.destination}`:`${f.origin} ➔ DEL`}</div>
-                <div style={{ background: 'rgba(0,242,254,0.1)', padding: '0.65rem', borderRadius: '6px', marginTop: '0.75rem', fontSize: '0.8rem' }}>
-                  💡 AAI AI Recommendation: {f.aiDelayRisk>50?'Assign CAT-III certified flight crew & request priority pushback slot from ATC.':'Maintain standard departure slot.'}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.5rem'}}>
+                  {[{label:'Engine',val:fh.engine},{label:'Hydraulic',val:fh.hydraulic},{label:'Tyre',val:fh.tyre},{label:'Brake',val:fh.brake},{label:'Fuel Eff.',val:fh.fuel},{label:'Next Maint.',val:fh.nextMaint}].map((m,i)=>(
+                    <div key={i} style={{padding:'0.4rem',background:'rgba(0,0,0,0.2)',borderRadius:'var(--radius-sm)',fontSize:'0.78rem'}}>
+                      <div style={{color:'var(--text-muted)',fontSize:'0.7rem'}}>{m.label}</div>
+                      <div style={{fontWeight:700,color:getHealthColor(m.val),marginTop:'0.1rem'}}>{m.val}</div>
+                    </div>
+                  ))}
                 </div>
+                {isAdmin && (
+                  <div style={{marginTop:'0.5rem'}}>
+                    <button className="btn btn-secondary" style={{fontSize:'0.72rem',padding:'0.25rem 0.5rem',width:'100%'}} onClick={()=>{
+                      setDb(prev=>({...prev,fleetHealth:prev.fleetHealth.map(f=>f.id===fh.id?{...f,status:'Airworthy',engine:'99%',hydraulic:'98%',brake:'Optimal'}:f)}));
+                      appendAuditLog('FLEET_MAINT',`Maintenance completed for ${fh.aircraft}`);
+                      addToast(`${fh.aircraft} maintenance logged`,'success');
+                    }}>🔧 Log Maintenance Complete</button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -675,52 +839,428 @@
       );
     }
 
-    function QRIoTView({ passengers, setPassengers, flights, setFlights, baggage, setBaggage }) {
-      const [scanPnr, setScanPnr] = useState('PNR-DEL-4412');
-      const [scanMsg, setScanMsg] = useState(null);
+    // ═══════════════════════════════════════════════════════
+    // 7. BAGGAGE VIEW
+    // ═══════════════════════════════════════════════════════
 
-      const doScan = () => {
-        const found = passengers.find(p=>p.pnr===scanPnr);
-        if (found) {
-          setPassengers(prev => prev.map(p=>p.pnr===scanPnr?{...p, status:'Boarded'}:p));
-          setScanMsg(`✓ DIGIYATRA AUTHORIZED: ${found.name} (${found.seat}) Boarded at Gate T1-Gate 05!`);
-        }
-      };
+    function BaggageView({ db, setDb, isAdmin, addToast, appendAuditLog }) {
+      const statusColors = {Loading:'var(--accent-amber)','In Sorting':'var(--accent-purple)','In Transit':'var(--accent-cyan)',Loaded:'var(--accent-emerald)',Delivered:'var(--accent-emerald)','At Carousel':'var(--accent-blue)'};
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <h2>QR DigiYatra e-Gate Boarding & IoT Baggage Telemetry</h2>
-          <div className="grid-2">
-            <div className="glass-card">
-              <h3>CISF DigiYatra QR e-Gate Scanner</h3>
-              <div style={{ display: 'flex', gap: '0.5rem', margin: '1rem 0' }}>
-                <select className="form-select" value={scanPnr} onChange={e=>setScanPnr(e.target.value)}>
-                  {passengers.map(p=><option key={p.pnr} value={p.pnr}>{p.pnr} - {p.name} [{p.status}]</option>)}
-                </select>
-                <button className="btn btn-primary" onClick={doScan}>Validate DigiYatra</button>
-              </div>
-              {scanMsg && <div style={{ background: 'rgba(16,185,129,0.2)', padding: '0.85rem', borderRadius: '8px', color: 'var(--accent-emerald)', fontWeight: 'bold' }}>{scanMsg}</div>}
-            </div>
+        <div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <h2 style={{fontWeight:800}}>🛄 IoT Baggage Tracking System</h2>
+            {isAdmin && <button className="btn btn-primary" onClick={()=>{
+              const newBag = {id:`BAG-${Date.now().toString().slice(-3)}`,tagId:`DEL-AI-${Math.floor(Math.random()*99999)}`,pnr:`PNR-AI-${Math.floor(Math.random()*9999)}`,flight:'AI-302',passenger:'New Passenger',origin:'DEL',destination:'MAA',weight:`${(Math.random()*20+5).toFixed(1)} kg`,status:'In Sorting',
+                steps:[{loc:"Check-in Counter",time:new Date().toLocaleTimeString(),done:true},{loc:"Security X-Ray",time:"—",done:false},{loc:"Sorting Hub",time:"—",done:false},{loc:"Loading Bay",time:"—",done:false},{loc:"Aircraft Cargo",time:"—",done:false}]};
+              setDb(prev=>({...prev,baggage:[...prev.baggage,newBag]}));
+              appendAuditLog('BAGGAGE_ADD',`Added baggage ${newBag.tagId}`);
+              addToast('New baggage record added','success');
+            }}>+ Add Bag</button>}
+          </div>
 
-            <div className="glass-card">
-              <h3>AAI Celebi IoT RFID Baggage Tracking</h3>
-              {baggage.map(b => (
-                <div key={b.tagId} style={{ background: 'rgba(0,0,0,0.3)', padding: '0.85rem', borderRadius: '8px', marginBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <strong style={{ color: 'var(--accent-cyan)' }}>{b.tagId}</strong>
-                    <span className="badge badge-success">{b.status}</span>
+          <div style={{display:'flex',gap:'1rem',flexWrap:'wrap'}}>
+            {Object.entries(statusColors).map(([s,c])=>{
+              const count = db.baggage.filter(b=>b.status===s).length;
+              if(count===0) return null;
+              return <div key={s} className="glass-card" style={{padding:'0.5rem 1rem',textAlign:'center',flex:'1',minWidth:'100px'}}>
+                <div style={{fontSize:'1.2rem',fontWeight:800,color:c}}>{count}</div>
+                <div style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>{s}</div>
+              </div>;
+            })}
+          </div>
+
+          {db.baggage.map(b=>(
+            <div key={b.id} className="glass-card">
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:'0.5rem',marginBottom:'1rem'}}>
+                <div>
+                  <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
+                    <strong style={{fontSize:'1rem',color:'var(--accent-cyan)'}}>{b.tagId}</strong>
+                    <span className="badge badge-info">{b.status}</span>
                   </div>
-                  <div style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>{b.passengerName} • {b.currentStep}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Temp: {b.tempC}°C • Shock: {b.shockG}g • Battery: {b.batteryPct}%</div>
+                  <div style={{fontSize:'0.82rem',color:'var(--text-secondary)',marginTop:'0.3rem',display:'flex',gap:'1rem',flexWrap:'wrap'}}>
+                    <span>✈️ {b.flight}</span><span>👤 {b.passenger}</span><span>🎫 {b.pnr}</span><span>⚖️ {b.weight}</span><span>🛬 {b.origin} → {b.destination}</span>
+                  </div>
                 </div>
-              ))}
+                {isAdmin && <button className="btn btn-secondary" style={{fontSize:'0.7rem',padding:'0.2rem 0.5rem',color:'var(--accent-rose)'}} onClick={()=>{
+                  setDb(prev=>({...prev,baggage:prev.baggage.filter(bg=>bg.id!==b.id)}));
+                  appendAuditLog('BAGGAGE_DELETE',`Deleted baggage ${b.tagId}`);
+                  addToast('Baggage record deleted','danger');
+                }}>🗑️</button>}
+              </div>
+              <div style={{position:'relative',paddingLeft:'1.5rem'}}>
+                <div style={{position:'absolute',left:'0.65rem',top:'0.5rem',bottom:'0.5rem',width:'2px',background:'var(--border-color)'}}></div>
+                {b.steps.map((s,i)=>(
+                  <div key={i} style={{position:'relative',paddingBottom:'0.75rem',paddingLeft:'1rem'}}>
+                    <div style={{position:'absolute',left:'-0.9rem',top:'0.25rem',width:'10px',height:'10px',borderRadius:'50%',background:s.done?'var(--accent-emerald)':'var(--border-color)',border:s.done?'2px solid var(--accent-emerald)':'2px solid var(--text-muted)',zIndex:1}}></div>
+                    <div style={{fontSize:'0.82rem',fontWeight:s.done?600:400,color:s.done?'var(--text-primary)':'var(--text-muted)'}}>
+                      {s.loc} <span style={{fontFamily:'var(--font-mono)',fontSize:'0.75rem',marginLeft:'0.5rem',color:'var(--text-muted)'}}>{s.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 8. CCTV VIEW
+    // ═══════════════════════════════════════════════════════
+
+    function CctvView({ db, setDb, isAdmin, isCISF }) {
+      return (
+        <div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+          <h2 style={{fontWeight:800}}>🎥 AI-Powered CCTV Surveillance Grid</h2>
+          <div style={{display:'flex',gap:'1rem',flexWrap:'wrap'}}>
+            <div className="glass-card" style={{padding:'0.5rem 1rem',flex:1,textAlign:'center'}}><div style={{fontSize:'1.2rem',fontWeight:800,color:'var(--accent-emerald)'}}>{db.cctv.filter(c=>c.status==='ONLINE').length}</div><div style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>Online</div></div>
+            <div className="glass-card" style={{padding:'0.5rem 1rem',flex:1,textAlign:'center'}}><div style={{fontSize:'1.2rem',fontWeight:800,color:'var(--accent-rose)'}}>{db.cctv.filter(c=>c.status==='OFFLINE').length}</div><div style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>Offline</div></div>
+            <div className="glass-card" style={{padding:'0.5rem 1rem',flex:1,textAlign:'center'}}><div style={{fontSize:'1.2rem',fontWeight:800,color:'var(--accent-amber)'}}>{db.cctv.reduce((a,c)=>a+c.alerts,0)}</div><div style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>Alerts</div></div>
+            <div className="glass-card" style={{padding:'0.5rem 1rem',flex:1,textAlign:'center'}}><div style={{fontSize:'1.2rem',fontWeight:800,color:'var(--accent-cyan)'}}>{db.cctv.reduce((a,c)=>a+c.peopleCount,0)}</div><div style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>People Detected</div></div>
+          </div>
+          <div className="grid-3">
+            {db.cctv.map(cam=>(
+              <div key={cam.id} className="glass-card" style={{borderColor:cam.status==='OFFLINE'?'rgba(244,63,94,0.4)':'var(--border-color)'}}>
+                <div style={{background:'rgba(0,0,0,0.5)',borderRadius:'var(--radius-md)',padding:'2.5rem 1rem',textAlign:'center',marginBottom:'0.75rem',position:'relative',overflow:'hidden'}}>
+                  <div style={{fontSize:'2.5rem',opacity:0.3}}>📹</div>
+                  <div style={{position:'absolute',top:'0.5rem',left:'0.5rem',display:'flex',alignItems:'center',gap:'0.3rem'}}>
+                    <div style={{width:'8px',height:'8px',borderRadius:'50%',background:cam.status==='ONLINE'?'var(--accent-emerald)':'var(--accent-rose)',boxShadow:cam.status==='ONLINE'?'0 0 8px var(--accent-emerald)':'0 0 8px var(--accent-rose)'}}></div>
+                    <span style={{fontSize:'0.65rem',color:cam.status==='ONLINE'?'var(--accent-emerald)':'var(--accent-rose)',fontWeight:700}}>{cam.status}</span>
+                  </div>
+                  {cam.status==='ONLINE' && <div style={{position:'absolute',top:'0.5rem',right:'0.5rem',fontSize:'0.65rem',color:'var(--accent-rose)',fontWeight:700}}>● REC</div>}
+                </div>
+                <strong style={{fontSize:'0.9rem'}}>{cam.name}</strong>
+                <div style={{fontSize:'0.78rem',color:'var(--text-secondary)',marginTop:'0.2rem'}}>{cam.location}</div>
+                <div style={{display:'flex',justifyContent:'space-between',marginTop:'0.5rem',fontSize:'0.78rem'}}>
+                  <span>👥 {cam.peopleCount} detected</span>
+                  <span style={{color:cam.alerts>0?'var(--accent-rose)':'var(--accent-emerald)'}}>⚠️ {cam.alerts} alerts</span>
+                </div>
+                <div style={{fontSize:'0.72rem',color:'var(--text-muted)',marginTop:'0.2rem'}}>Zone: {cam.zone}</div>
+              </div>
+            ))}
           </div>
         </div>
       );
     }
 
-    // Render App
+    // ═══════════════════════════════════════════════════════
+    // 9. LOST & FOUND VIEW
+    // ═══════════════════════════════════════════════════════
+
+    function LostFoundView({ db, setDb, isAdmin, isCISF, currentUser, addToast, appendAuditLog }) {
+      const [showAddModal, setShowAddModal] = useState(false);
+      const [lfForm, setLfForm] = useState({item:'',category:'Personal Item',location:'',description:'',status:'UNCLAIMED',claimedBy:null});
+
+      const handleSaveLf = (e) => {
+        e.preventDefault();
+        const nItem = {id:`LF-${Date.now().toString().slice(-3)}`,...lfForm,dateFound:new Date().toISOString().split('T')[0]};
+        setDb(prev=>({...prev,lostAndFound:[nItem,...prev.lostAndFound]}));
+        appendAuditLog('LOST_FOUND_ADD',`Added item: ${lfForm.item}`);
+        addToast('Item added to Lost & Found!','success');
+        setShowAddModal(false); setLfForm({item:'',category:'Personal Item',location:'',description:'',status:'UNCLAIMED',claimedBy:null});
+      };
+
+      const claimItem = (id) => {
+        const claimant = currentUser ? currentUser.name : 'Walk-in Claimant';
+        setDb(prev=>({...prev,lostAndFound:prev.lostAndFound.map(i=>i.id===id?{...i,status:'CLAIMED',claimedBy:claimant}:i)}));
+        appendAuditLog('LOST_FOUND_CLAIM',`Item ${id} claimed by ${claimant}`);
+        addToast('Item marked as claimed!','success');
+      };
+
+      return (
+        <div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <h2 style={{fontWeight:800}}>🔍 Lost & Found Inventory</h2>
+            {(isAdmin||isCISF) && <button className="btn btn-primary" onClick={()=>setShowAddModal(true)}>+ Report Found Item</button>}
+          </div>
+
+          <div style={{display:'flex',gap:'1rem',flexWrap:'wrap'}}>
+            <div className="glass-card" style={{padding:'0.5rem 1rem',flex:1,textAlign:'center'}}><div style={{fontSize:'1.2rem',fontWeight:800,color:'var(--accent-amber)'}}>{db.lostAndFound.filter(i=>i.status==='UNCLAIMED').length}</div><div style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>Unclaimed</div></div>
+            <div className="glass-card" style={{padding:'0.5rem 1rem',flex:1,textAlign:'center'}}><div style={{fontSize:'1.2rem',fontWeight:800,color:'var(--accent-emerald)'}}>{db.lostAndFound.filter(i=>i.status==='CLAIMED').length}</div><div style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>Claimed</div></div>
+            <div className="glass-card" style={{padding:'0.5rem 1rem',flex:1,textAlign:'center'}}><div style={{fontSize:'1.2rem',fontWeight:800,color:'var(--accent-cyan)'}}>{db.lostAndFound.length}</div><div style={{fontSize:'0.7rem',color:'var(--text-secondary)'}}>Total</div></div>
+          </div>
+
+          <div className="glass-card" style={{overflowX:'auto'}}>
+            <table style={{width:'100%',fontSize:'0.82rem',borderCollapse:'collapse',minWidth:'800px'}}>
+              <thead><tr style={{borderBottom:'2px solid var(--border-color)',color:'var(--text-secondary)',fontSize:'0.75rem',textTransform:'uppercase'}}>
+                <th style={{padding:'0.75rem',textAlign:'left'}}>ID</th><th style={{textAlign:'left'}}>Item</th><th style={{textAlign:'left'}}>Category</th><th style={{textAlign:'left'}}>Location Found</th><th style={{textAlign:'left'}}>Date</th><th style={{textAlign:'left'}}>Status</th><th style={{textAlign:'left'}}>Description</th>
+                {(isAdmin||isCISF) && <th style={{textAlign:'center'}}>Actions</th>}
+              </tr></thead>
+              <tbody>
+                {db.lostAndFound.map(item=>(
+                  <tr key={item.id} style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                    <td style={{padding:'0.75rem',fontFamily:'var(--font-mono)',fontSize:'0.78rem',color:'var(--text-muted)'}}>{item.id}</td>
+                    <td style={{fontWeight:600}}>{item.item}</td>
+                    <td><span className="badge badge-info">{item.category}</span></td>
+                    <td style={{fontSize:'0.78rem',color:'var(--text-secondary)'}}>{item.location}</td>
+                    <td style={{fontFamily:'var(--font-mono)',fontSize:'0.78rem'}}>{item.dateFound}</td>
+                    <td><span className={`badge ${item.status==='CLAIMED'?'badge-success':'badge-warning'}`}>{item.status}</span></td>
+                    <td style={{fontSize:'0.78rem',color:'var(--text-secondary)',maxWidth:'200px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.description}</td>
+                    {(isAdmin||isCISF) && (
+                      <td style={{textAlign:'center'}}>
+                        {item.status==='UNCLAIMED' && <button className="btn btn-primary" style={{fontSize:'0.7rem',padding:'0.2rem 0.5rem',marginRight:'0.25rem'}} onClick={()=>claimItem(item.id)}>✓ Claim</button>}
+                        {isAdmin && <button className="btn btn-secondary" style={{fontSize:'0.7rem',padding:'0.2rem 0.4rem',color:'var(--accent-rose)'}} onClick={()=>{
+                          setDb(prev=>({...prev,lostAndFound:prev.lostAndFound.filter(i=>i.id!==item.id)}));
+                          appendAuditLog('LOST_FOUND_DELETE',`Deleted item ${item.id}`);
+                          addToast('Item removed','danger');
+                        }}>🗑️</button>}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {showAddModal && (
+            <div className="modal-overlay" onClick={e=>{if(e.target.className.includes('modal-overlay'))setShowAddModal(false)}}>
+              <div className="modal-card">
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'1rem'}}><h3 style={{color:'var(--accent-cyan)'}}>📦 Report Found Item</h3><button className="btn btn-secondary" onClick={()=>setShowAddModal(false)}>✕</button></div>
+                <form onSubmit={handleSaveLf} style={{display:'flex',flexDirection:'column',gap:'0.75rem'}}>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Item Name</label><input required className="form-input" value={lfForm.item} onChange={e=>setLfForm({...lfForm,item:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Category</label><select className="form-select" value={lfForm.category} onChange={e=>setLfForm({...lfForm,category:e.target.value})}><option>Personal Item</option><option>Electronics</option><option>Jewelry</option><option>Luggage</option><option>Documents</option><option>Other</option></select></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Location Found</label><input required className="form-input" value={lfForm.location} onChange={e=>setLfForm({...lfForm,location:e.target.value})} /></div>
+                  <div><label style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>Description</label><textarea className="form-input" rows="3" value={lfForm.description} onChange={e=>setLfForm({...lfForm,description:e.target.value})}></textarea></div>
+                  <button type="submit" className="btn btn-primary">Submit Report</button>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 10. ADMIN COMMAND CENTER
+    // ═══════════════════════════════════════════════════════
+
+    function AdminView({ db, setDb, addToast, appendAuditLog }) {
+      const [adminTab, setAdminTab] = useState('users');
+      const [showCreateAdmin, setShowCreateAdmin] = useState(false);
+      const [newAdminForm, setNewAdminForm] = useState({name:'',email:'',password:''});
+
+      const handleCreateAdmin = (e) => {
+        e.preventDefault();
+        const nu = {id:`USR-${Date.now().toString().slice(-4)}`,name:newAdminForm.name,email:newAdminForm.email,password:newAdminForm.password,role:'Admin',status:'APPROVED',employeeId:`AAI-ADM-${Date.now().toString().slice(-3)}`};
+        setDb(prev=>({...prev,users:[...prev.users,nu]}));
+        appendAuditLog('ADMIN_CREATE',`Created new Admin: ${newAdminForm.name}`);
+        addToast(`Admin ${newAdminForm.name} created!`,'success');
+        setShowCreateAdmin(false); setNewAdminForm({name:'',email:'',password:''});
+      };
+
+      const approveUser = (id) => {
+        setDb(prev=>({...prev,users:prev.users.map(u=>u.id===id?{...u,status:'APPROVED'}:u)}));
+        appendAuditLog('USER_APPROVE',`Approved user ${id}`);
+        addToast('User approved!','success');
+      };
+      const rejectUser = (id) => {
+        setDb(prev=>({...prev,users:prev.users.filter(u=>u.id!==id)}));
+        appendAuditLog('USER_REJECT',`Rejected & removed user ${id}`);
+        addToast('User rejected','danger');
+      };
+      const deleteUser = (id, name) => {
+        setDb(prev=>({...prev,users:prev.users.filter(u=>u.id!==id)}));
+        appendAuditLog('USER_DELETE',`Deleted user ${name} (${id})`);
+        addToast(`User ${name} deleted`,'danger');
+      };
+
+      const resetDB = () => {
+        const fresh = JSON.parse(JSON.stringify(SEED));
+        setDb(fresh); localStorage.setItem(DB_KEY, JSON.stringify(fresh));
+        addToast('🔄 Database reset to factory defaults!','warning');
+        appendAuditLog('SYSTEM_RESET','Full database reset to initial seed data.');
+      };
+
+      const adminTabs = [{key:'users',label:'👥 User Management'},{key:'wheelchair',label:'♿ Wheelchair Requests'},{key:'pendingApprovals',label:'⏳ Pending Approvals'},{key:'auditLogs',label:'📜 Audit Logs'},{key:'systemConfig',label:'⚙️ System Config'},{key:'dataOverview',label:'📊 Data Overview'}];
+
+      return (
+        <div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+          <h2 style={{fontWeight:800,color:'var(--accent-amber)'}}>👑 Admin Master Command Center</h2>
+
+          <div style={{display:'flex',gap:'0.5rem',flexWrap:'wrap',background:'rgba(0,0,0,0.3)',padding:'0.25rem',borderRadius:'var(--radius-md)'}}>
+            {adminTabs.map(tab=>(
+              <button key={tab.key} className={`btn ${adminTab===tab.key?'btn-primary':'btn-secondary'}`} style={{fontSize:'0.8rem',padding:'0.4rem 0.8rem'}} onClick={()=>setAdminTab(tab.key)}>{tab.label}</button>
+            ))}
+          </div>
+
+          {adminTab==='users' && (
+            <div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
+                <h3>All Registered Users ({db.users.length})</h3>
+                <button className="btn btn-primary" onClick={()=>setShowCreateAdmin(true)}>+ Create Admin Account</button>
+              </div>
+              <div className="glass-card" style={{overflowX:'auto'}}>
+                <table style={{width:'100%',fontSize:'0.82rem',borderCollapse:'collapse',minWidth:'700px'}}>
+                  <thead><tr style={{borderBottom:'2px solid var(--border-color)',color:'var(--text-secondary)',fontSize:'0.75rem',textTransform:'uppercase'}}>
+                    <th style={{padding:'0.75rem',textAlign:'left'}}>ID</th><th style={{textAlign:'left'}}>Name</th><th style={{textAlign:'left'}}>Email</th><th style={{textAlign:'left'}}>Role</th><th style={{textAlign:'left'}}>Status</th><th style={{textAlign:'center'}}>Actions</th>
+                  </tr></thead>
+                  <tbody>
+                    {db.users.map(u=>(
+                      <tr key={u.id} style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                        <td style={{padding:'0.75rem',fontFamily:'var(--font-mono)',fontSize:'0.78rem',color:'var(--text-muted)'}}>{u.id}</td>
+                        <td style={{fontWeight:600}}>{u.name}</td>
+                        <td style={{fontSize:'0.78rem',color:'var(--text-secondary)'}}>{u.email}</td>
+                        <td><span className={`badge ${u.role==='Admin'?'badge-danger':u.role==='Airport Manager'?'badge-warning':'badge-info'}`}>{u.role}</span></td>
+                        <td><span className={`badge ${u.status==='APPROVED'?'badge-success':'badge-warning'}`}>{u.status}</span></td>
+                        <td style={{textAlign:'center'}}>
+                          {u.status==='PENDING_APPROVAL' && <button className="btn btn-primary" style={{fontSize:'0.7rem',padding:'0.2rem 0.5rem',marginRight:'0.25rem'}} onClick={()=>approveUser(u.id)}>✓ Approve</button>}
+                          <button className="btn btn-secondary" style={{fontSize:'0.7rem',padding:'0.2rem 0.4rem',color:'var(--accent-rose)'}} onClick={()=>deleteUser(u.id,u.name)}>🗑️</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {adminTab==='pendingApprovals' && (
+            <div className="glass-card">
+              <h3 style={{marginBottom:'1rem'}}>⏳ Pending Staff Approvals</h3>
+              {db.users.filter(u=>u.status==='PENDING_APPROVAL').length===0 ? (
+                <div style={{textAlign:'center',padding:'2rem',color:'var(--accent-emerald)'}}>✅ No pending approvals</div>
+              ) : db.users.filter(u=>u.status==='PENDING_APPROVAL').map(u=>(
+                <div key={u.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0.75rem',borderBottom:'1px solid var(--border-color)'}}>
+                  <div><strong>{u.name}</strong> <span style={{color:'var(--text-secondary)',fontSize:'0.82rem'}}>— {u.role} ({u.email})</span></div>
+                  <div style={{display:'flex',gap:'0.3rem'}}>
+                    <button className="btn btn-primary" style={{fontSize:'0.75rem',padding:'0.3rem 0.6rem'}} onClick={()=>approveUser(u.id)}>✓ Approve</button>
+                    <button className="btn btn-secondary" style={{fontSize:'0.75rem',padding:'0.3rem 0.6rem',color:'var(--accent-rose)'}} onClick={()=>rejectUser(u.id)}>✕ Reject</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {adminTab==='auditLogs' && (
+            <div className="glass-card">
+              <h3 style={{marginBottom:'1rem'}}>📜 System Audit Logs ({db.auditLogs.length} entries)</h3>
+              <div style={{maxHeight:'500px',overflowY:'auto'}}>
+                {db.auditLogs.map(l=>(
+                  <div key={l.id} style={{display:'flex',gap:'1rem',padding:'0.5rem 0',borderBottom:'1px solid rgba(255,255,255,0.04)',fontSize:'0.8rem',fontFamily:'var(--font-mono)'}}>
+                    <span style={{color:'var(--text-muted)',minWidth:'180px',fontSize:'0.75rem'}}>{l.timestamp}</span>
+                    <span style={{color:'var(--accent-cyan)',minWidth:'200px'}}>{l.actor}</span>
+                    <span className="badge badge-info" style={{minWidth:'120px',justifyContent:'center'}}>{l.action}</span>
+                    <span style={{color:'var(--text-secondary)',flex:1}}>{l.details}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {adminTab==='systemConfig' && (
+            <div>
+              <div className="grid-2">
+                <div className="glass-card">
+                  <h3 style={{marginBottom:'0.75rem'}}>📞 Contact Information</h3>
+                  <div style={{display:'flex',flexDirection:'column',gap:'0.5rem',fontSize:'0.85rem'}}>
+                    <div><span style={{color:'var(--text-secondary)'}}>Helpline:</span> <strong>{db.contactInfo.helpline}</strong></div>
+                    <div><span style={{color:'var(--text-secondary)'}}>Email:</span> <strong>{db.contactInfo.email}</strong></div>
+                    <div><span style={{color:'var(--text-secondary)'}}>Address:</span> <strong>{db.contactInfo.address}</strong></div>
+                  </div>
+                </div>
+                <div className="glass-card">
+                  <h3 style={{marginBottom:'0.75rem'}}>⚙️ System Actions</h3>
+                  <div style={{display:'flex',flexDirection:'column',gap:'0.5rem'}}>
+                    <button className="btn btn-secondary" onClick={resetDB}>🔄 Reset Database to Defaults</button>
+                    <button className="btn btn-secondary" onClick={()=>{localStorage.removeItem(DB_KEY);addToast('LocalStorage cleared. Refresh page.','warning');}}>🗑️ Clear LocalStorage</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {adminTab==='wheelchair' && (
+            <div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
+                <h3>♿ Wheelchair Assistance Requests ({db.wheelchairRequests.length})</h3>
+              </div>
+              <div style={{display:'flex',gap:'1rem',flexWrap:'wrap',marginBottom:'1.25rem'}}>
+                {[{s:'PENDING',c:'var(--accent-amber)',l:'Pending'},{s:'DISPATCHED',c:'var(--accent-cyan)',l:'Dispatched'},{s:'COMPLETED',c:'var(--accent-emerald)',l:'Completed'},{s:'REJECTED',c:'var(--accent-rose)',l:'Rejected'}].map(st=>(
+                  <div key={st.s} className="glass-card" style={{padding:'0.6rem 1.25rem',flex:1,minWidth:'100px',textAlign:'center'}}>
+                    <div style={{fontSize:'1.4rem',fontWeight:800,color:st.c}}>{db.wheelchairRequests.filter(r=>r.status===st.s).length}</div>
+                    <div style={{fontSize:'0.72rem',color:'var(--text-secondary)'}}>{st.l}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="glass-card" style={{overflowX:'auto'}}>
+                <table style={{width:'100%',fontSize:'0.82rem',borderCollapse:'collapse',minWidth:'750px'}}>
+                  <thead><tr style={{borderBottom:'2px solid var(--border-color)',color:'var(--text-secondary)',fontSize:'0.75rem',textTransform:'uppercase'}}>
+                    <th style={{padding:'0.75rem',textAlign:'left'}}>ID</th><th style={{textAlign:'left'}}>Passenger</th><th style={{textAlign:'left'}}>Airline</th><th style={{textAlign:'left'}}>PNR</th><th style={{textAlign:'left'}}>Mobile</th><th style={{textAlign:'left'}}>Requested</th><th style={{textAlign:'left'}}>Status</th><th style={{textAlign:'center'}}>Actions</th>
+                  </tr></thead>
+                  <tbody>
+                    {db.wheelchairRequests.map(r=>(
+                      <tr key={r.id} style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                        <td style={{padding:'0.75rem',fontFamily:'var(--font-mono)',fontSize:'0.78rem',color:'var(--text-muted)'}}>{r.id}</td>
+                        <td style={{fontWeight:600}}>{r.passengerName}</td>
+                        <td>{r.airlineName}</td>
+                        <td style={{fontFamily:'var(--font-mono)',fontSize:'0.78rem'}}>{r.pnrNumber || '—'}</td>
+                        <td style={{fontSize:'0.78rem'}}>{r.mobileNumber}</td>
+                        <td style={{fontSize:'0.78rem',color:'var(--text-secondary)'}}>{r.timestamp}</td>
+                        <td><span className={`badge ${r.status==='COMPLETED'?'badge-success':r.status==='DISPATCHED'?'badge-warning':r.status==='REJECTED'?'badge-danger':'badge-info'}`}>{r.status}</span></td>
+                        <td style={{textAlign:'center'}}>
+                          <div style={{display:'flex',gap:'0.25rem',justifyContent:'center'}}>
+                            {r.status==='PENDING' && <button className="btn btn-primary" style={{fontSize:'0.7rem',padding:'0.2rem 0.5rem'}} onClick={()=>{
+                              setDb(prev=>({...prev,wheelchairRequests:prev.wheelchairRequests.map(w=>w.id===r.id?{...w,status:'DISPATCHED'}:w)}));
+                              appendAuditLog('WHEELCHAIR_DISPATCH',`Dispatched wheelchair for ${r.passengerName}`);
+                              addToast(`♿ Wheelchair dispatched for ${r.passengerName}`,'success');
+                            }}>🚀 Dispatch</button>}
+                            {(r.status==='DISPATCHED'||r.status==='PENDING') && <button className="btn btn-secondary" style={{fontSize:'0.7rem',padding:'0.2rem 0.5rem',color:'var(--accent-emerald)'}} onClick={()=>{
+                              setDb(prev=>({...prev,wheelchairRequests:prev.wheelchairRequests.map(w=>w.id===r.id?{...w,status:'COMPLETED'}:w)}));
+                              appendAuditLog('WHEELCHAIR_COMPLETE',`Wheelchair service completed for ${r.passengerName}`);
+                              addToast(`✅ Wheelchair service completed for ${r.passengerName}`,'success');
+                            }}>✅ Complete</button>}
+                            {r.status==='PENDING' && <button className="btn btn-secondary" style={{fontSize:'0.7rem',padding:'0.2rem 0.5rem',color:'var(--accent-rose)'}} onClick={()=>{
+                              setDb(prev=>({...prev,wheelchairRequests:prev.wheelchairRequests.map(w=>w.id===r.id?{...w,status:'REJECTED'}:w)}));
+                              appendAuditLog('WHEELCHAIR_REJECT',`Wheelchair request rejected for ${r.passengerName}`);
+                              addToast(`Wheelchair request rejected for ${r.passengerName}`,'warning');
+                            }}>✕ Reject</button>}
+                            <button className="btn btn-secondary" style={{fontSize:'0.7rem',padding:'0.2rem 0.4rem',color:'var(--accent-rose)'}} onClick={()=>{
+                              setDb(prev=>({...prev,wheelchairRequests:prev.wheelchairRequests.filter(w=>w.id!==r.id)}));
+                              appendAuditLog('WHEELCHAIR_DELETE',`Deleted wheelchair request ${r.id}`);
+                              addToast('Wheelchair request deleted','danger');
+                            }}>🗑️</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {db.wheelchairRequests.length===0 && <div style={{textAlign:'center',padding:'2rem',color:'var(--text-muted)'}}>No wheelchair requests yet</div>}
+              </div>
+            </div>
+          )}
+
+          {adminTab==='dataOverview' && (
+            <div className="grid-3">
+              {[{label:'Flights',count:db.flights.length,icon:'✈️',color:'var(--accent-cyan)'},{label:'Gates',count:db.gates.length,icon:'🚪',color:'var(--accent-emerald)'},{label:'Emergencies',count:db.emergencies.length,icon:'🚨',color:'var(--accent-rose)'},{label:'Baggage',count:db.baggage.length,icon:'🛄',color:'var(--accent-blue)'},{label:'Lost & Found',count:db.lostAndFound.length,icon:'🔍',color:'var(--accent-amber)'},{label:'CCTV Cams',count:db.cctv.length,icon:'🎥',color:'var(--accent-purple)'},{label:'Fleet Health',count:db.fleetHealth.length,icon:'🛠️',color:'var(--accent-cyan)'},{label:'Wheelchair',count:db.wheelchairRequests.length,icon:'♿',color:'var(--accent-purple)'},{label:'Users',count:db.users.length,icon:'👥',color:'var(--accent-emerald)'},{label:'Audit Logs',count:db.auditLogs.length,icon:'📜',color:'var(--accent-amber)'}].map((d,i)=>(
+                <div key={i} className="kpi-card" style={{textAlign:'center'}}>
+                  <div style={{fontSize:'2rem',marginBottom:'0.25rem'}}>{d.icon}</div>
+                  <div style={{fontSize:'1.5rem',fontWeight:800,color:d.color}}>{d.count}</div>
+                  <div style={{fontSize:'0.75rem',color:'var(--text-secondary)'}}>{d.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showCreateAdmin && (
+            <div className="modal-overlay" onClick={e=>{if(e.target.className.includes('modal-overlay'))setShowCreateAdmin(false)}}>
+              <div className="modal-card">
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'1rem'}}><h3 style={{color:'var(--accent-amber)'}}>👑 Create New Admin Account</h3><button className="btn btn-secondary" onClick={()=>setShowCreateAdmin(false)}>✕</button></div>
+                <form onSubmit={handleCreateAdmin} style={{display:'flex',flexDirection:'column',gap:'0.75rem'}}>
+                  <input required className="form-input" placeholder="Full Name" value={newAdminForm.name} onChange={e=>setNewAdminForm({...newAdminForm,name:e.target.value})} />
+                  <input required type="email" className="form-input" placeholder="Email" value={newAdminForm.email} onChange={e=>setNewAdminForm({...newAdminForm,email:e.target.value})} />
+                  <input required type="password" className="form-input" placeholder="Password" value={newAdminForm.password} onChange={e=>setNewAdminForm({...newAdminForm,password:e.target.value})} />
+                  <button type="submit" className="btn btn-primary">Create Admin</button>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // RENDER
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
