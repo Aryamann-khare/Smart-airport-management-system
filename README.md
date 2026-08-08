@@ -1,7 +1,5 @@
 # Smart-airport-management-system
 
-click here to check out my project :- smart-airport-management-system.wasmer.app
-
 AAI AeroPulse OS — Fully Populated Smart Airport Dashboard
 The AAI AeroPulse OS (Indira Gandhi International Airport, Delhi — DEL/VIDP) has been completely rebuilt with all sections fully populated with rich data and Admin CRUD controls across every module.
 
@@ -36,17 +34,6 @@ Role	Capabilities
 
 👑 Admin	Full CRUD on all modules + user management + create new admins
 
-👔 Airport Manager	Inherits Admin view scope except user management
-
-📡 ATC Command/Controller	Flight operations, emergency reporting
-
-🛡️ CISF Lead/Officer	Emergency reporting, lost & found management
-
-🧑‍💼 Ground Staff / ✈️ Airline Staff	Gate operations
-
-🧹 Housekeeping	View access
-
-👤 Passenger	Public dashboard view
 
 🌐 Access Application
 Open 
