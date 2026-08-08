@@ -10,10 +10,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="src/index.css" />
 
-  <!-- STABLE LOCAL DEPENDENCIES -->
-  <script src="src/chart.min.js"></script>
-  <script src="src/react.min.js"></script>
-  <script src="src/react-dom.min.js"></script>
+  <!-- LOAD STABLE DEPENDENCIES FROM CDN (fallback to local if needed) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 </head>
 <body>
   <div id="root"></div>
