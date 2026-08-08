@@ -817,3 +817,35 @@ tr:hover td {
   border: 2px solid #070a12;
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.9);
 }
+
+
+/* CCTV AI Video Feed Animations */
+@keyframes cctvScanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+
+@keyframes cctvRadarSweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes cctvWalkLeftRight {
+  0% { transform: translateX(-20px); }
+  50% { transform: translateX(240px); }
+  100% { transform: translateX(-20px); }
+}
+
+@keyframes cctvPulseAlert {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.05); }
+}
+
+.cctv-scanline {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(to bottom, rgba(0, 242, 254, 0.4), transparent);
+  animation: cctvScanline 8s linear infinite;
+  pointer-events: none;
+}
