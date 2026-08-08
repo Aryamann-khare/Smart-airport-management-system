@@ -180,13 +180,14 @@ const SEED = {
     address: "Indira Gandhi International Airport, New Delhi – 110037, India"
   },
   users: [{
-    id: "USR-010",
+    id: "USR-001",
     name: "AAI Master Admin",
     email: "admin@delhi.aai",
-    password: "123",
+    password: "admin",
     role: "Admin",
+    designation: "Chief Operations Director",
     status: "APPROVED",
-    employeeId: "AAI-ADM-001"
+    employeeId: "ADM-DEL-001"
   }],
   flights: [{
     id: "FL-001",
@@ -1302,7 +1303,7 @@ function loadDB() {
           runways: parsed.runways && parsed.runways.length > 0 ? parsed.runways : SEED.runways,
           shops: parsed.shops && parsed.shops.length > 0 ? parsed.shops : SEED.shops,
           flights: parsed.flights && parsed.flights.length > 0 ? parsed.flights : SEED.flights,
-          emergencies: Array.isArray(parsed.emergencies) ? parsed.emergencies : SEED.emergencies,
+          emergencies: (Array.isArray(parsed.emergencies) && parsed.emergencies.length > 0) ? parsed.emergencies : SEED.emergencies,
           wheelchairRequests: Array.isArray(parsed.wheelchairRequests) ? parsed.wheelchairRequests : SEED.wheelchairRequests,
           lostFoundItems: Array.isArray(parsed.lostFoundItems) ? parsed.lostFoundItems : SEED.lostFoundItems,
           auditLogs: Array.isArray(parsed.auditLogs) ? parsed.auditLogs : SEED.auditLogs,
@@ -2247,7 +2248,8 @@ function App() {
     employeeId: '',
     email: '',
     mobile: '',
-    role: 'Staff',
+    role: 'Ground and Terminal Operations',
+    designation: '',
     password: '',
     confirmPassword: ''
   });
@@ -2268,7 +2270,8 @@ function App() {
       addToast('Invalid Staff Credentials', 'danger');
       return;
     }
-    if (found.role !== 'Staff' && found.role !== 'Admin') {
+    const staffRoles = ['Ground and Terminal Operations', 'Air Traffic Control and Flight Operations', 'Security and Safety', 'Customer Service', 'Staff', 'Admin'];
+    if (!staffRoles.includes(found.role)) {
       addToast('Only Staff accounts can log in here', 'danger');
       return;
     }
@@ -2330,7 +2333,8 @@ function App() {
       email: regForm.email,
       mobile: regForm.mobile,
       employeeId: regForm.employeeId || `STF-DEL-${Date.now().toString().slice(-3)}`,
-      role: 'Staff',
+      role: regForm.role || 'Ground and Terminal Operations',
+      designation: regForm.designation || 'Operations Specialist',
       password: regForm.password,
       status: 'PENDING_APPROVAL'
     };
@@ -2519,7 +2523,20 @@ function App() {
     addToast('♿ Wheelchair Dispatched!', 'success');
   };
   const isAdmin = currentUser?.role === 'Admin';
-  const isStaff = currentUser?.role === 'Staff';
+  const isGroundOps = currentUser?.role === 'Ground and Terminal Operations' || currentUser?.role === 'Staff';
+  const isAtcOps = currentUser?.role === 'Air Traffic Control and Flight Operations';
+  const isSecurityOps = currentUser?.role === 'Security and Safety';
+  const isCustomerOps = currentUser?.role === 'Customer Service';
+  const isStaff = isAdmin || isGroundOps || isAtcOps || isSecurityOps || isCustomerOps;
+
+  const canManageFlights = isAdmin || isGroundOps || isAtcOps;
+  const canManageEmergencies = isAdmin || isAtcOps || isSecurityOps;
+  const canManageCctv = isAdmin || isSecurityOps;
+  const canManageLostFound = isAdmin || isSecurityOps || isCustomerOps;
+  const canManageParking = isAdmin || isGroundOps || isCustomerOps;
+  const canManageCabs = isAdmin || isGroundOps || isCustomerOps;
+  const canManageBaggage = isAdmin || isGroundOps || isCustomerOps;
+  const canManageWheelchair = isAdmin || isGroundOps || isCustomerOps;
   const isStaffOrAdmin = isAdmin || isStaff;
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const sidebarItems = [{
@@ -3260,6 +3277,7 @@ function App() {
     appendAuditLog: appendAuditLog,
     activeAirport: activeAirport
   }), activeTab === 'flights' && /*#__PURE__*/React.createElement(FlightsView, {
+      canManageFlights: canManageFlights,
     db: db,
     setDb: setDb,
     isAdmin: isAdmin,
@@ -3277,6 +3295,7 @@ function App() {
     appendAuditLog: appendAuditLog,
     activeAirport: activeAirport
   }), activeTab === 'carParking' && /*#__PURE__*/React.createElement(CarParkingView, {
+      canManageParking: canManageParking,
     db: db,
     setDb: setDb,
     currentUser: currentUser,
@@ -3286,6 +3305,7 @@ function App() {
     appendAuditLog: appendAuditLog,
     activeAirport: activeAirport
   }), activeTab === 'cabBooking' && /*#__PURE__*/React.createElement(OlaCabBookingView, {
+      canManageCabs: canManageCabs,
     db: db,
     setDb: setDb,
     currentUser: currentUser,
@@ -3299,10 +3319,11 @@ function App() {
     setDb: setDb,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
+    canManageEmergencies: canManageEmergencies,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
     activeAirport: activeAirport
-  }), activeTab === 'fleetHealth' && (isStaffOrAdmin ? /*#__PURE__*/React.createElement(FleetHealthView, {
+  }), activeTab === 'fleetHealth' && (canAccessFleetHealth ? /*#__PURE__*/React.createElement(FleetHealthView, {
     db: db,
     setDb: setDb,
     isAdmin: isAdmin,
@@ -3342,6 +3363,7 @@ function App() {
       setShowAuthModal(true);
     }
   }, "\uD83D\uDD11 Login to Access Fleet Health"))), activeTab === 'baggage' && /*#__PURE__*/React.createElement(BaggageView, {
+      canManageBaggage: canManageBaggage,
     db: db,
     setDb: setDb,
     isAdmin: isAdmin,
@@ -3349,7 +3371,7 @@ function App() {
     addToast: addToast,
     appendAuditLog: appendAuditLog,
     activeAirport: activeAirport
-  }), activeTab === 'cctv' && (isStaffOrAdmin ? /*#__PURE__*/React.createElement(CctvView, {
+  }), activeTab === 'cctv' && (canAccessCctv ? /*#__PURE__*/React.createElement(CctvView, {
     db: db,
     setDb: setDb,
     isAdmin: isAdmin,
@@ -3387,6 +3409,7 @@ function App() {
       setShowAuthModal(true);
     }
   }, "\uD83D\uDD11 Staff / Security Login"))), activeTab === 'lostFound' && /*#__PURE__*/React.createElement(LostFoundView, {
+      canManageLostFound: canManageLostFound,
     db: db,
     setDb: setDb,
     isAdmin: isAdmin,
@@ -3396,6 +3419,7 @@ function App() {
     appendAuditLog: appendAuditLog,
     activeAirport: activeAirport
   }), activeTab === 'wheelchair' && /*#__PURE__*/React.createElement(WheelchairView, {
+      canManageWheelchair: canManageWheelchair,
     db: db,
     setDb: setDb,
     isAdmin: isAdmin,
@@ -4100,22 +4124,37 @@ function App() {
       ...regForm,
       mobile: e.target.value
     })
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      gridColumn: '1/-1'
-    }
-  }, /*#__PURE__*/React.createElement("label", {
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: '0.75rem',
       color: 'var(--text-secondary)'
     }
-  }, "Role"), /*#__PURE__*/React.createElement("input", {
-    readOnly: true,
+  }, "Staff Operational Role"), /*#__PURE__*/React.createElement("select", {
+    required: true,
     className: "form-input",
-    value: "Staff",
+    value: regForm.role || "Ground and Terminal Operations",
+    onChange: e => setRegForm({
+      ...regForm,
+      role: e.target.value
+    })
+  }, /*#__PURE__*/React.createElement("option", { value: "Ground and Terminal Operations" }, "🛫 Ground and Terminal Operations"),
+     /*#__PURE__*/React.createElement("option", { value: "Air Traffic Control and Flight Operations" }, "🛰️ Air Traffic Control and Flight Operations"),
+     /*#__PURE__*/React.createElement("option", { value: "Security and Safety" }, "🛡️ Security and Safety"),
+     /*#__PURE__*/React.createElement("option", { value: "Customer Service" }, "🎧 Customer Service"))),
+     /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: {
-      background: 'rgba(255,255,255,0.05)'
+      fontSize: '0.75rem',
+      color: 'var(--text-secondary)'
     }
+  }, "Official Designation"), /*#__PURE__*/React.createElement("input", {
+    required: true,
+    className: "form-input",
+    placeholder: "e.g. Operations Manager / Senior ATC / Security Lead",
+    value: regForm.designation || "",
+    onChange: e => setRegForm({
+      ...regForm,
+      designation: e.target.value
+    })
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: '0.75rem',
@@ -4327,7 +4366,7 @@ function DashboardView({
     tab: "baggage"
   }, {
     label: t('activeAlerts'),
-    val: db.emergencies.filter(e => e.status === 'ACTIVE').length,
+    val: (db?.emergencies || SEED.emergencies || []).filter(e => e.status === 'ACTIVE').length,
     icon: "🚨",
     color: "var(--accent-rose)",
     tab: "emergency"
@@ -4488,13 +4527,13 @@ function DashboardView({
     className: "card-header"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-title"
-  }, "\uD83D\uDEA8 Active Incidents")), db.emergencies.filter(e => e.status === 'ACTIVE').length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDEA8 Active Incidents")), (db?.emergencies || SEED.emergencies || []).filter(e => e.status === 'ACTIVE').length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: 'center',
       padding: '2rem',
       color: 'var(--accent-emerald)'
     }
-  }, "\u2705 No active incidents") : db.emergencies.filter(e => e.status === 'ACTIVE').map(e => /*#__PURE__*/React.createElement("div", {
+  }, "\u2705 No active incidents") : (db?.emergencies || SEED.emergencies || []).filter(e => e.status === 'ACTIVE').map(e => /*#__PURE__*/React.createElement("div", {
     key: e.id,
     className: "glass-card",
     style: {
@@ -6419,7 +6458,7 @@ function FlightsView({
   db,
   setDb,
   isAdmin,
-  isATC,
+  canManageFlights,
   addToast,
   appendAuditLog,
   searchQuery,
@@ -7389,10 +7428,11 @@ function EmergencyView({
   db,
   setDb,
   isAdmin,
-  isCISF,
+  canManageEmergencies,
   addToast,
   appendAuditLog
 }) {
+  const emgList = (Array.isArray(db?.emergencies) && db.emergencies.length > 0) ? db.emergencies : (SEED.emergencies || []);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [emgForm, setEmgForm] = useState({
@@ -7410,7 +7450,7 @@ function EmergencyView({
     if (editId) {
       setDb(prev => ({
         ...prev,
-        emergencies: prev.emergencies.map(em => em.id === editId ? {
+        emergencies: (prev.emergencies || emgList).map(em => em.id === editId ? {
           ...em,
           ...emgForm
         } : em)
@@ -7425,7 +7465,7 @@ function EmergencyView({
       };
       setDb(prev => ({
         ...prev,
-        emergencies: [ne, ...prev.emergencies]
+        emergencies: [ne, ...(prev.emergencies || emgList)]
       }));
       appendAuditLog('EMERGENCY_CREATE', `Created: ${emgForm.title}`);
       addToast('🚨 Emergency incident created!', 'danger');
@@ -7436,7 +7476,7 @@ function EmergencyView({
   const handleDeleteEmg = id => {
     setDb(prev => ({
       ...prev,
-      emergencies: prev.emergencies.filter(e => e.id !== id)
+      emergencies: (prev.emergencies || emgList).filter(e => e.id !== id)
     }));
     appendAuditLog('EMERGENCY_DELETE', `Deleted incident ${id}`);
     addToast('Emergency archived', 'info');
@@ -7468,7 +7508,7 @@ function EmergencyView({
     style: {
       fontWeight: 800
     }
-  }, "\uD83D\uDEA8 Emergency Command Center"), (isAdmin || isCISF) && /*#__PURE__*/React.createElement("button", {
+  }, "\uD83D\uDEA8 Emergency Command Center"), (isAdmin || canManageEmergencies) && /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary",
     onClick: () => {
       setEmgForm({
@@ -7517,12 +7557,12 @@ function EmergencyView({
       fontWeight: 800,
       color: s.color
     }
-  }, s.filter ? db.emergencies.filter(e => e.status === s.filter).length : db.emergencies.filter(e => e.escalated).length), /*#__PURE__*/React.createElement("div", {
+  }, s.filter ? emgList.filter(e => e.status === s.filter).length : emgList.filter(e => e.escalated).length), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: '0.75rem',
       color: 'var(--text-secondary)'
     }
-  }, s.label)))), db.emergencies.map(e => /*#__PURE__*/React.createElement("div", {
+  }, s.label)))), emgList.map(e => /*#__PURE__*/React.createElement("div", {
     key: e.id,
     className: "glass-card",
     style: {
@@ -7585,7 +7625,7 @@ function EmergencyView({
       display: 'flex',
       gap: '0.3rem'
     }
-  }, e.status === 'ACTIVE' && (isAdmin || isCISF) && /*#__PURE__*/React.createElement("button", {
+  }, e.status === 'ACTIVE' && (isAdmin || canManageEmergencies) && /*#__PURE__*/React.createElement("button", {
     className: "btn btn-primary",
     style: {
       fontSize: '0.75rem',
@@ -10593,6 +10633,7 @@ function AdminView({
   const [newAdminForm, setNewAdminForm] = useState({
     name: '',
     email: '',
+    designation: 'Airport Operations Director',
     password: ''
   });
   const [contactForm, setContactForm] = useState({
@@ -10614,6 +10655,7 @@ function AdminView({
       email: newAdminForm.email,
       password: newAdminForm.password,
       role: 'Admin',
+      designation: newAdminForm.designation || 'Master Admin Director',
       status: 'APPROVED',
       employeeId: `AAI-ADM-${Date.now().toString().slice(-3)}`
     };
@@ -11583,7 +11625,7 @@ function AdminView({
     color: 'var(--accent-emerald)'
   }, {
     label: 'Emergencies',
-    count: db.emergencies.length,
+    count: (db?.emergencies || SEED.emergencies || []).length,
     icon: '🚨',
     color: 'var(--accent-rose)'
   }, {
@@ -11688,6 +11730,15 @@ function AdminView({
     onChange: e => setNewAdminForm({
       ...newAdminForm,
       email: e.target.value
+    })
+  }), /*#__PURE__*/React.createElement("input", {
+    required: true,
+    className: "form-input",
+    placeholder: "Admin Designation (e.g. Chief Operations Director)",
+    value: newAdminForm.designation || "",
+    onChange: e => setNewAdminForm({
+      ...newAdminForm,
+      designation: e.target.value
     })
   }), /*#__PURE__*/React.createElement("input", {
     required: true,
