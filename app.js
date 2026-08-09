@@ -1,9 +1,4 @@
-const {
-  useState,
-  useEffect,
-  useRef,
-  useCallback
-} = React;
+// React hooks already destructured at top of script
 
 // ═══════════════════════════════════════════════════════
 // CONSTANTS & SEED DATA
@@ -2271,7 +2266,7 @@ function formatUsersToMongoDB(users) {
   }));
 }
 
-async function syncMongoDBData(users) {
+function syncMongoDBData(users) {
   try {
     const mongoDoc = {
       _meta: {
@@ -2284,12 +2279,6 @@ async function syncMongoDBData(users) {
       credentials: formatUsersToMongoDB(users)
     };
     try { localStorage.setItem('mongodb_credentials_db', JSON.stringify(mongoDoc)); } catch(e){}
-    // Sync to local server file endpoint if available
-    fetch('/api/sync-mongodb', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(mongoDoc)
-    }).catch(() => {});
   } catch (err) {
     console.warn('MongoDB Sync Warning:', err.message);
   }
@@ -2381,12 +2370,22 @@ function App() {
   // Sync with Cloud DB on load & state updates
   useEffect(() => {
     fetchCloudDatabase().then(cloudDb => {
-      if (cloudDb && Array.isArray(cloudDb.users)) {
+      if (cloudDb && Array.isArray(cloudDb.users) && cloudDb.users.length > 0) {
         setDb(prev => {
-          const existingEmails = new Set(prev.users.map(u => u.email));
+          const existingEmails = new Set((prev?.users || []).map(u => u.email));
           const newUsers = cloudDb.users.filter(u => !existingEmails.has(u.email));
-          const mergedUsers = [...prev.users, ...newUsers];
-          const merged = { ...prev, ...cloudDb, users: mergedUsers };
+          const mergedUsers = [...(prev?.users || []), ...newUsers];
+          
+          const merged = {
+            ...prev,
+            users: mergedUsers,
+            fleetHealth: (Array.isArray(cloudDb.fleetHealth) && cloudDb.fleetHealth.length > 0) ? cloudDb.fleetHealth : prev.fleetHealth,
+            lostFoundItems: (Array.isArray(cloudDb.lostFoundItems) && cloudDb.lostFoundItems.length > 0) ? cloudDb.lostFoundItems : prev.lostFoundItems,
+            lostFoundClaims: (Array.isArray(cloudDb.lostFoundClaims) && cloudDb.lostFoundClaims.length > 0) ? cloudDb.lostFoundClaims : prev.lostFoundClaims,
+            cabBookings: (Array.isArray(cloudDb.cabBookings) && cloudDb.cabBookings.length > 0) ? cloudDb.cabBookings : prev.cabBookings,
+            wheelchairRequests: (Array.isArray(cloudDb.wheelchairRequests) && cloudDb.wheelchairRequests.length > 0) ? cloudDb.wheelchairRequests : prev.wheelchairRequests,
+            emergencyAlerts: (Array.isArray(cloudDb.emergencyAlerts) && cloudDb.emergencyAlerts.length > 0) ? cloudDb.emergencyAlerts : prev.emergencyAlerts
+          };
           try { localStorage.setItem('delhi_airport_db', JSON.stringify(merged)); } catch(e){}
           return merged;
         });
@@ -2396,7 +2395,7 @@ function App() {
 
   // Sync to Cloud DB on db state changes
   useEffect(() => {
-    syncCloudDatabase(db);
+    syncCloudDatabase(db); try { localStorage.setItem('delhi_airport_db', JSON.stringify(db)); } catch(e){}
   }, [db.users, db.cabBookings, db.wheelchairRequests, db.emergencyAlerts]);
   const addToast = (msg, type = 'info') => {
     const id = Date.now();
@@ -9388,72 +9387,133 @@ function CctvView({
   );
 }
 
-function LostFoundView({
-  db,
-  setDb,
-  isAdmin,
-  isStaff,
-  currentUser,
-  addToast,
-  appendAuditLog,
-  activeAirport
-}) {
-  const aptCode = activeAirport?.code || 'DEL';
-  const aptName = activeAirport?.name || 'Indira Gandhi International Airport';
-  const canManage = isStaff || isAdmin;
+function LostFoundView(props) {
+  var db = props.db;
+  var setDb = props.setDb;
+  var isAdmin = props.isAdmin;
+  var isStaff = props.isStaff;
+  var currentUser = props.currentUser;
+  var addToast = props.addToast;
+  var appendAuditLog = props.appendAuditLog;
+  var activeAirport = props.activeAirport;
 
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [showAppealModal, setShowAppealModal] = useState(false);
-  const [selectedItemForAppeal, setSelectedItemForAppeal] = useState(null);
-  const [activeTabSection, setActiveTabSection] = useState('GALLERY'); // GALLERY, PENDING_QUEUE, CLAIMS_QUEUE
-  const [filterTag, setFilterTag] = useState('ALL'); // ALL, LOST, FOUND
+  var aptCode = (activeAirport && activeAirport.code) ? activeAirport.code : 'DEL';
+  var aptName = (activeAirport && activeAirport.name) ? activeAirport.name : 'Indira Gandhi International Airport';
+  var canManage = isStaff || isAdmin;
+
+  // Independent Modal Control States
+  var reportModalState = useState(false);
+  var showReportModal = reportModalState[0];
+  var setShowReportModal = reportModalState[1];
+
+  var appealModalState = useState(false);
+  var showAppealModal = appealModalState[0];
+  var setShowAppealModal = appealModalState[1];
+
+  var selectedItemState = useState(null);
+  var selectedItemForAppeal = selectedItemState[0];
+  var setSelectedItemForAppeal = selectedItemState[1];
+
+  // Independent Tab Section & Filter States
+  var tabSectionState = useState('GALLERY');
+  var activeTabSection = tabSectionState[0];
+  var setActiveTabSection = tabSectionState[1];
+
+  var filterTagState = useState('ALL');
+  var filterTag = filterTagState[0];
+  var setFilterTag = filterTagState[1];
 
   // Form states
-  const [reportForm, setReportForm] = useState({
+  var reportFormState = useState({
     title: '',
     category: 'Electronics',
-    type: 'LOST', // LOST or FOUND
+    type: 'LOST',
     location: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
-    contactName: currentUser?.name || '',
-    contactInfo: currentUser?.mobile || currentUser?.email || ''
+    contactName: currentUser ? (currentUser.name || '') : '',
+    contactInfo: currentUser ? (currentUser.mobile || currentUser.email || '') : ''
   });
+  var reportForm = reportFormState[0];
+  var setReportForm = reportFormState[1];
 
-  const [appealForm, setAppealForm] = useState({
-    claimantName: currentUser?.name || '',
-    claimantContact: currentUser?.mobile || currentUser?.email || '',
+  var appealFormState = useState({
+    itemId: '',
+    claimantName: currentUser ? (currentUser.name || '') : '',
+    claimantContact: currentUser ? (currentUser.mobile || currentUser.email || '') : '',
     flightNo: '',
     proofDetails: ''
   });
+  var appealForm = appealFormState[0];
+  var setAppealForm = appealFormState[1];
 
-  const items = Array.isArray(db?.lostFoundItems) ? db.lostFoundItems : [
+  var defaultItems = [
     { id: "LFI-001", title: "Apple iPad Pro 11-inch (Space Gray)", category: "Electronics", type: "LOST", location: "Terminal 3 Gate 42 Lounge", date: "2026-08-08", description: "In dark blue folio case with airport sticker on back.", status: "UNCLAIMED", reporter: "Passenger A" },
     { id: "LFI-002", title: "Samsonite Black Hard Spinner Suitcase", category: "Luggage", type: "FOUND", location: "Baggage Belt 4", date: "2026-08-08", description: "Red ribbon tied to top handle, contains clothing.", status: "UNCLAIMED", reporter: "CISF Security" },
-    { id: "LFI-003", title: "Indian Passport & Travel Wallet", category: "Documents", type: "FOUND", location: "T3 Security Checkpoint Gate 3", date: "2026-08-07", description: "Found inside leather travel wallet with boarding pass.", status: "IN_VERIFICATION", reporter: "Staff Duty Officer" }
+    { id: "LFI-003", title: "Bose QuietComfort 45 Headphones", category: "Electronics", type: "LOST", location: "Terminal 1 Departure Gate 12", date: "2026-08-07", description: "Black carrying case with audio cable and charger.", status: "PENDING_REVIEW", claimPending: true, pendingClaimant: "Rohan Sharma", reporter: "Traveler B" },
+    { id: "LFI-004", title: "Indian Passport & Travel Leather Wallet", category: "Documents", type: "FOUND", location: "T3 Security Checkpoint Gate 3", date: "2026-08-06", description: "Verified by Duty Officer and returned to passenger.", status: "CLAIMED", reporter: "Staff Duty Officer" },
+    { id: "LFI-005", title: "Sony Alpha A7 Camera in Black Pouch", category: "Electronics", type: "FOUND", location: "Terminal 3 Food Court", date: "2026-08-05", description: "Verified ownership proof matched serial number.", status: "CLAIMED", reporter: "Terminal Ops" }
   ];
 
-  const claimsList = Array.isArray(db?.lostFoundClaims) ? db.lostFoundClaims : [];
+  var items = (db && Array.isArray(db.lostFoundItems) && db.lostFoundItems.length > 0) ? db.lostFoundItems : defaultItems;
+  var claimsList = (db && Array.isArray(db.lostFoundClaims)) ? db.lostFoundClaims : [];
 
-  // Filter public items: ONLY show items with status UNCLAIMED, IN_VERIFICATION, or RETURNED
-  const publicApprovedItems = items.filter(item => item.status !== 'PENDING_REVIEW' && item.status !== 'REJECTED');
-  const pendingReviewItems = items.filter(item => item.status === 'PENDING_REVIEW');
+  // Group items by status
+  var unclaimedItems = items.filter(function(item) { return item.status === 'UNCLAIMED'; });
+  var pendingReviewItems = items.filter(function(item) { return item.status === 'PENDING_REVIEW' || item.status === 'IN_VERIFICATION'; });
+  var claimedItems = items.filter(function(item) { return item.status === 'CLAIMED' || item.status === 'RETURNED'; });
 
-  const filteredPublicItems = publicApprovedItems.filter(item => {
+  var filteredUnclaimedItems = unclaimedItems.filter(function(item) {
     if (filterTag === 'LOST') return item.type === 'LOST';
     if (filterTag === 'FOUND') return item.type === 'FOUND';
     return true;
   });
 
-  // Submit new report (Sent to Pending Review Queue)
-  const handleReportSubmit = (e) => {
+  // Direct Open Report Modal Handler
+  var openReportModal = function(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+    setShowReportModal(true);
+  };
+
+  // Direct Open Appeal Modal Handler
+  var openAppealModal = function(itemOrEvent, possibleItem) {
+    var item = null;
+    var event = null;
+
+    if (itemOrEvent && itemOrEvent.id && itemOrEvent.title) {
+      item = itemOrEvent;
+      event = possibleItem;
+    } else if (possibleItem && possibleItem.id && possibleItem.title) {
+      item = possibleItem;
+      event = itemOrEvent;
+    }
+
+    if (event && event.preventDefault) event.preventDefault();
+    if (event && event.stopPropagation) event.stopPropagation();
+
+    var targetItem = item || (unclaimedItems.length > 0 ? unclaimedItems[0] : null);
+
+    setSelectedItemForAppeal(targetItem);
+    setAppealForm({
+      itemId: targetItem ? targetItem.id : '',
+      claimantName: currentUser ? (currentUser.name || '') : '',
+      claimantContact: currentUser ? (currentUser.mobile || currentUser.email || '') : '',
+      flightNo: '',
+      proofDetails: ''
+    });
+    setShowAppealModal(true);
+  };
+
+  // Submit new report
+  var handleReportSubmit = function(e) {
     e.preventDefault();
     if (!reportForm.title.trim() || !reportForm.description.trim()) {
       if (addToast) addToast('Please enter item title and detailed description', 'warning');
       return;
     }
 
-    const newItem = {
+    var newItem = {
       id: 'LFI-' + Math.floor(100 + Math.random() * 900),
       title: reportForm.title,
       category: reportForm.category,
@@ -9461,18 +9521,21 @@ function LostFoundView({
       location: reportForm.location || (aptCode + ' Concourse Zone'),
       date: reportForm.date,
       description: reportForm.description,
-      status: 'PENDING_REVIEW', // Sent to staff review queue
+      status: 'PENDING_REVIEW',
+      claimPending: false,
       reporter: reportForm.contactName || 'Airport Traveler',
       contactInfo: reportForm.contactInfo
     };
 
-    setDb(prev => ({
-      ...prev,
-      lostFoundItems: [newItem, ...(prev.lostFoundItems || items)]
-    }));
+    var newLostFoundList = [newItem].concat(items);
+    setDb(function(prev) {
+      var nextDb = Object.assign({}, prev, { lostFoundItems: newLostFoundList });
+      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      return nextDb;
+    });
 
     if (appendAuditLog) appendAuditLog('LOST_FOUND_SUBMITTED', 'Submitted ' + reportForm.type + ' report for ' + reportForm.title);
-    if (addToast) addToast('⏳ Report submitted! Sent to Staff & Admin for review before public publishing.', 'success');
+    if (addToast) addToast('⏳ Report submitted! Navigated to Pending Staff Review Queue.', 'success');
 
     setReportForm({
       title: '',
@@ -9481,51 +9544,33 @@ function LostFoundView({
       location: '',
       date: new Date().toISOString().split('T')[0],
       description: '',
-      contactName: currentUser?.name || '',
+      contactName: currentUser ? (currentUser.name || '') : '',
       contactInfo: ''
     });
     setShowReportModal(false);
+    setActiveTabSection('PENDING_QUEUE');
   };
 
-  // Staff Approve Report -> Make UNCLAIMED (Public)
-  const handleApproveReport = (itemId, itemTitle) => {
-    const updated = items.map(item => item.id === itemId ? { ...item, status: 'UNCLAIMED' } : item);
-    setDb(prev => ({ ...prev, lostFoundItems: updated }));
-    if (appendAuditLog) appendAuditLog('LOST_FOUND_APPROVED', 'Approved lost & found report for ' + itemTitle);
-    if (addToast) addToast('✅ Approved report for ' + itemTitle + '! Now published in public gallery.', 'success');
-  };
-
-  // Staff Reject Report
-  const handleRejectReport = (itemId, itemTitle) => {
-    const updated = items.map(item => item.id === itemId ? { ...item, status: 'REJECTED' } : item);
-    setDb(prev => ({ ...prev, lostFoundItems: updated }));
-    if (appendAuditLog) appendAuditLog('LOST_FOUND_REJECTED', 'Rejected lost & found report for ' + itemTitle);
-    if (addToast) addToast('❌ Rejected report for ' + itemTitle, 'warning');
-  };
-
-  // Public Claim Appeal Submission (No Login Required)
-  const openAppealModal = (item) => {
-    setSelectedItemForAppeal(item);
-    setAppealForm({
-      claimantName: currentUser?.name || '',
-      claimantContact: currentUser?.mobile || currentUser?.email || '',
-      flightNo: '',
-      proofDetails: ''
-    });
-    setShowAppealModal(true);
-  };
-
-  const handleAppealSubmit = (e) => {
+  // Public Claim Appeal Submission
+  var handleAppealSubmit = function(e) {
     e.preventDefault();
+    var targetItemId = appealForm.itemId || (selectedItemForAppeal ? selectedItemForAppeal.id : '');
+    var targetItem = items.find(function(i) { return i.id === targetItemId; }) || selectedItemForAppeal;
+
+    if (!targetItem) {
+      if (addToast) addToast('Please select an item to claim', 'warning');
+      return;
+    }
+
     if (!appealForm.claimantName.trim() || !appealForm.claimantContact.trim() || !appealForm.proofDetails.trim()) {
       if (addToast) addToast('Please enter your name, contact info, and proof of ownership details', 'warning');
       return;
     }
 
-    const newClaim = {
+    var newClaim = {
       id: 'CLM-' + Math.floor(1000 + Math.random() * 9000),
-      itemId: selectedItemForAppeal.id,
-      itemTitle: selectedItemForAppeal.title,
+      itemId: targetItem.id,
+      itemTitle: targetItem.title,
       claimantName: appealForm.claimantName,
       claimantContact: appealForm.claimantContact,
       flightNo: appealForm.flightNo,
@@ -9534,32 +9579,211 @@ function LostFoundView({
       timestamp: new Date().toLocaleTimeString()
     };
 
-    setDb(prev => ({
-      ...prev,
-      lostFoundClaims: [newClaim, ...(prev.lostFoundClaims || claimsList)]
-    }));
+    var updatedItems = items.map(function(i) {
+      return i.id === targetItem.id ? Object.assign({}, i, {
+        status: 'PENDING_REVIEW',
+        claimPending: true,
+        pendingClaimant: appealForm.claimantName
+      }) : i;
+    });
 
-    if (appendAuditLog) appendAuditLog('ITEM_CLAIM_APPEALED', 'Claim appeal submitted for item ' + selectedItemForAppeal.title);
-    if (addToast) addToast('🙋‍♂️ Claim appeal submitted for ' + selectedItemForAppeal.title + '! Staff will verify your ownership proof.', 'success');
+    var newClaimsList = [newClaim].concat(claimsList);
+
+    setDb(function(prev) {
+      var nextDb = Object.assign({}, prev, {
+        lostFoundClaims: newClaimsList,
+        lostFoundItems: updatedItems
+      });
+      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      return nextDb;
+    });
+
+    if (appendAuditLog) appendAuditLog('ITEM_CLAIM_APPEALED', 'Claim appeal submitted for item ' + targetItem.title);
+    if (addToast) addToast('⏳ Claim appeal submitted! Item moved to Pending Review Queue.', 'success');
 
     setShowAppealModal(false);
+    setActiveTabSection('PENDING_QUEUE');
   };
 
-  // Staff Approve Passenger Claim Appeal
-  const handleApproveClaim = (claimId, itemId, itemTitle) => {
-    const updatedClaims = claimsList.map(c => c.id === claimId ? { ...c, status: 'APPROVED' } : c);
-    const updatedItems = items.map(i => i.id === itemId ? { ...i, status: 'RETURNED' } : i);
-    setDb(prev => ({ ...prev, lostFoundClaims: updatedClaims, lostFoundItems: updatedItems }));
+  // Staff Approve Pending Review Item
+  var handleApproveReport = function(itemId, itemTitle, isClaimPending) {
+    var nextStatus = isClaimPending ? 'CLAIMED' : 'UNCLAIMED';
+    var updated = items.map(function(item) {
+      return item.id === itemId ? Object.assign({}, item, { status: nextStatus, claimPending: false }) : item;
+    });
+    setDb(function(prev) {
+      var nextDb = Object.assign({}, prev, { lostFoundItems: updated });
+      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      return nextDb;
+    });
+    if (appendAuditLog) appendAuditLog('LOST_FOUND_APPROVED', 'Approved item ' + itemTitle + ' -> ' + nextStatus);
+    if (addToast) addToast('✅ Approved ' + itemTitle + '! Status set to ' + nextStatus + '.', 'success');
+  };
+
+  // Staff Reject Pending Review Item
+  var handleRejectReport = function(itemId, itemTitle, isClaimPending) {
+    var nextStatus = isClaimPending ? 'UNCLAIMED' : 'REJECTED';
+    var updated = items.map(function(item) {
+      return item.id === itemId ? Object.assign({}, item, { status: nextStatus, claimPending: false }) : item;
+    });
+    setDb(function(prev) {
+      var nextDb = Object.assign({}, prev, { lostFoundItems: updated });
+      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      return nextDb;
+    });
+    if (appendAuditLog) appendAuditLog('LOST_FOUND_REJECTED', 'Rejected review for ' + itemTitle);
+    if (addToast) addToast('❌ Rejected review for ' + itemTitle + '.', 'warning');
+  };
+
+  // Staff Approve Passenger Claim Appeal directly
+  var handleApproveClaim = function(claimId, itemId, itemTitle) {
+    var updatedClaims = claimsList.map(function(c) { return c.id === claimId ? Object.assign({}, c, { status: 'APPROVED' }) : c; });
+    var updatedItems = items.map(function(i) { return i.id === itemId ? Object.assign({}, i, { status: 'CLAIMED', claimPending: false }) : i; });
+    setDb(function(prev) {
+      var nextDb = Object.assign({}, prev, { lostFoundClaims: updatedClaims, lostFoundItems: updatedItems });
+      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      return nextDb;
+    });
     if (appendAuditLog) appendAuditLog('CLAIM_APPEAL_APPROVED', 'Verified & approved claim for ' + itemTitle);
-    if (addToast) addToast('✅ Claim approved! Item ' + itemTitle + ' marked as RETURNED.', 'success');
+    if (addToast) addToast('✅ Claim approved! Item ' + itemTitle + ' marked as CLAIMED.', 'success');
   };
 
-  // Staff Dismiss Passenger Claim Appeal
-  const handleDismissClaim = (claimId) => {
-    const updatedClaims = claimsList.map(c => c.id === claimId ? { ...c, status: 'DISMISSED' } : c);
-    setDb(prev => ({ ...prev, lostFoundClaims: updatedClaims }));
+  var handleDismissClaim = function(claimId) {
+    var updatedClaims = claimsList.map(function(c) { return c.id === claimId ? Object.assign({}, c, { status: 'DISMISSED' }) : c; });
+    setDb(function(prev) {
+      var nextDb = Object.assign({}, prev, { lostFoundClaims: updatedClaims });
+      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      return nextDb;
+    });
     if (addToast) addToast('Dismissed claim appeal', 'info');
   };
+
+  var renderPortalModal = function(modalElement) {
+    if (!modalElement) return null;
+    if (typeof ReactDOM !== 'undefined' && ReactDOM.createPortal && typeof document !== 'undefined' && document.body) {
+      return ReactDOM.createPortal(modalElement, document.body);
+    }
+    return modalElement;
+  };
+
+  var reportModalJSX = showReportModal ? React.createElement("div", {
+    style: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }
+  }, React.createElement("div", {
+    className: "glass-card",
+    style: { width: '100%', maxWidth: '520px', background: '#0f172a', border: '1px solid var(--accent-amber)', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }
+  }, React.createElement("div", {
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }
+  }, React.createElement("h3", {
+    style: { margin: 0, color: 'var(--accent-amber)', fontWeight: 800 }
+  }, "+ Report Missing or Found Item"), React.createElement("button", {
+    type: "button",
+    onClick: function() { setShowReportModal(false); },
+    style: { background: 'none', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }
+  }, "✖")), React.createElement("form", {
+    onSubmit: handleReportSubmit,
+    style: { display: 'flex', flexDirection: 'column', gap: '0.85rem' }
+  }, React.createElement("div", { className: "grid-2", style: { gap: '0.75rem' } }, React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Report Type"), React.createElement("select", {
+    className: "form-input",
+    value: reportForm.type,
+    onChange: function(e) { setReportForm(Object.assign({}, reportForm, { type: e.target.value })); },
+    style: { background: '#0f172a', color: '#fff' }
+  }, React.createElement("option", { value: "LOST" }, "🔴 Lost Item"), React.createElement("option", { value: "FOUND" }, "🟢 Found Item"))), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Item Category"), React.createElement("select", {
+    className: "form-input",
+    value: reportForm.category,
+    onChange: function(e) { setReportForm(Object.assign({}, reportForm, { category: e.target.value })); },
+    style: { background: '#0f172a', color: '#fff' }
+  }, React.createElement("option", { value: "Electronics" }, "Electronics"), React.createElement("option", { value: "Luggage" }, "Luggage / Bags"), React.createElement("option", { value: "Documents" }, "Passport / Documents"), React.createElement("option", { value: "Clothing" }, "Clothing / Accessories"), React.createElement("option", { value: "Keys" }, "Keys / Wallet")))), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Item Title / Name"), React.createElement("input", {
+    className: "form-input",
+    placeholder: "e.g. Apple iPad Pro 11-inch (Space Gray)",
+    value: reportForm.title,
+    onChange: function(e) { setReportForm(Object.assign({}, reportForm, { title: e.target.value })); },
+    required: true
+  })), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Location Lost / Found"), React.createElement("input", {
+    className: "form-input",
+    placeholder: "e.g. Terminal 3 Gate 42 Security Area",
+    value: reportForm.location,
+    onChange: function(e) { setReportForm(Object.assign({}, reportForm, { location: e.target.value })); }
+  })), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Detailed Description & Identifying Marks"), React.createElement("textarea", {
+    className: "form-input",
+    rows: 3,
+    placeholder: "Describe colors, stickers, case type, contents...",
+    value: reportForm.description,
+    onChange: function(e) { setReportForm(Object.assign({}, reportForm, { description: e.target.value })); },
+    required: true
+  })), React.createElement("div", { className: "grid-2", style: { gap: '0.75rem' } }, React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Your Name"), React.createElement("input", {
+    className: "form-input",
+    placeholder: "Full Name",
+    value: reportForm.contactName,
+    onChange: function(e) { setReportForm(Object.assign({}, reportForm, { contactName: e.target.value })); },
+    required: true
+  })), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Contact Phone / Email"), React.createElement("input", {
+    className: "form-input",
+    placeholder: "+91 9876543210",
+    value: reportForm.contactInfo,
+    onChange: function(e) { setReportForm(Object.assign({}, reportForm, { contactInfo: e.target.value })); },
+    required: true
+  }))), React.createElement("div", {
+    style: { fontSize: '0.7rem', color: 'var(--accent-amber)', background: 'rgba(245,158,11,0.1)', padding: '0.5rem', borderRadius: '6px' }
+  }, "ℹ️ Submitted reports will be sent to Pending Staff Review Queue before being published."), React.createElement("button", {
+    type: "submit",
+    className: "btn btn-primary",
+    style: { marginTop: '0.35rem', padding: '0.75rem', fontWeight: 800, background: 'linear-gradient(135deg, var(--accent-amber), #d97706)', color: '#000', cursor: 'pointer' }
+  }, "📤 Submit Report for Staff Review")))) : null;
+
+  var appealModalJSX = showAppealModal ? React.createElement("div", {
+    style: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }
+  }, React.createElement("div", {
+    className: "glass-card",
+    style: { width: '100%', maxWidth: '520px', background: '#0f172a', border: '1px solid var(--accent-cyan)', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }
+  }, React.createElement("div", {
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }
+  }, React.createElement("h3", {
+    style: { margin: 0, color: 'var(--accent-cyan)', fontWeight: 800 }
+  }, "🙋‍♂️ Appeal Ownership for Unclaimed Item"), React.createElement("button", {
+    type: "button",
+    onClick: function() { setShowAppealModal(false); },
+    style: { background: 'none', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }
+  }, "✖")), React.createElement("form", {
+    onSubmit: handleAppealSubmit,
+    style: { display: 'flex', flexDirection: 'column', gap: '0.85rem' }
+  }, React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Select Item to Claim"), React.createElement("select", {
+    className: "form-input",
+    value: appealForm.itemId,
+    onChange: function(e) {
+      var selected = items.find(function(i) { return i.id === e.target.value; });
+      setSelectedItemForAppeal(selected);
+      setAppealForm(Object.assign({}, appealForm, { itemId: e.target.value }));
+    },
+    style: { background: '#0f172a', color: '#fff', fontWeight: 700 }
+  }, unclaimedItems.map(function(un) { return React.createElement("option", { key: un.id, value: un.id }, un.title + " (" + un.location + ")"); }))), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Your Full Name"), React.createElement("input", {
+    className: "form-input",
+    placeholder: "Enter your full name...",
+    value: appealForm.claimantName,
+    onChange: function(e) { setAppealForm(Object.assign({}, appealForm, { claimantName: e.target.value })); },
+    required: true
+  })), React.createElement("div", { className: "grid-2", style: { gap: '0.75rem' } }, React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Contact Phone / Email"), React.createElement("input", {
+    className: "form-input",
+    placeholder: "+91 9876543210 / email",
+    value: appealForm.claimantContact,
+    onChange: function(e) { setAppealForm(Object.assign({}, appealForm, { claimantContact: e.target.value })); },
+    required: true
+  })), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Flight Number (If Applicable)"), React.createElement("input", {
+    className: "form-input",
+    placeholder: "e.g. AI-102",
+    value: appealForm.flightNo,
+    onChange: function(e) { setAppealForm(Object.assign({}, appealForm, { flightNo: e.target.value })); }
+  }))), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Proof of Ownership / Unique Identifying Features"), React.createElement("textarea", {
+    className: "form-input",
+    rows: 3,
+    placeholder: "Provide serial numbers, passcode description, stickers, unique scratches, or exact item contents to verify ownership...",
+    value: appealForm.proofDetails,
+    onChange: function(e) { setAppealForm(Object.assign({}, appealForm, { proofDetails: e.target.value })); },
+    required: true
+  })), React.createElement("button", {
+    type: "submit",
+    className: "btn btn-primary",
+    style: { marginTop: '0.35rem', padding: '0.75rem', fontWeight: 800, background: 'linear-gradient(135deg, var(--accent-cyan), #0284c7)', color: '#000', cursor: 'pointer' }
+  }, "🙋‍♂️ Submit Claim Appeal for Staff Verification")))) : null;
 
   return React.createElement("div", {
     style: { display: 'flex', flexDirection: 'column', gap: '1.5rem' }
@@ -9569,260 +9793,210 @@ function LostFoundView({
     style: { fontWeight: 800, margin: 0 }
   }, "🔍 Lost & Found Inventory & Claims Vault — " + aptName + " (" + aptCode + ")"), React.createElement("div", {
     style: { fontSize: '0.8rem', color: 'var(--accent-cyan)', marginTop: '0.2rem' }
-  }, "Public Item Gallery, 1-Click Passenger Claim Appeals & Staff Review Queue")), React.createElement("div", {
-    style: { display: 'flex', gap: '0.75rem', alignItems: 'center' }
+  }, "Public Unclaimed Gallery, Pending Staff Review Queue & Verified Claimed Vault")), React.createElement("div", {
+    style: { display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }
   }, React.createElement("button", {
     className: "btn btn-primary",
-    style: { background: 'linear-gradient(135deg, var(--accent-amber), #d97706)', color: '#000', fontWeight: 800 },
-    onClick: () => setShowReportModal(true)
+    style: { background: 'linear-gradient(135deg, var(--accent-amber), #d97706)', color: '#000', fontWeight: 800, cursor: 'pointer' },
+    onClick: openReportModal
   }, "+ Report Missing / Found Item"))), 
 
-  // TAB NAVIGATION SECTION (Public Gallery, Staff Pending Queue, Staff Claim Appeals Queue)
+  // TAB NAVIGATION (ALL PUBLIC TABS VISIBLE TO EVERYONE)
   React.createElement("div", {
     style: { display: 'flex', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', flexWrap: 'wrap' }
   }, React.createElement("button", {
     className: "btn " + (activeTabSection === 'GALLERY' ? 'btn-primary' : 'btn-secondary'),
-    onClick: () => setActiveTabSection('GALLERY'),
-    style: { fontSize: '0.88rem', fontWeight: 700 }
-  }, "📦 Public Unclaimed Gallery (" + publicApprovedItems.length + ")"), canManage && React.createElement("button", {
+    onClick: function() { setActiveTabSection('GALLERY'); },
+    style: { fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer' }
+  }, "📦 Public Unclaimed Gallery (" + unclaimedItems.length + ")"), React.createElement("button", {
     className: "btn " + (activeTabSection === 'PENDING_QUEUE' ? 'btn-primary' : 'btn-secondary'),
-    onClick: () => setActiveTabSection('PENDING_QUEUE'),
-    style: { fontSize: '0.88rem', fontWeight: 700, background: activeTabSection === 'PENDING_QUEUE' ? 'var(--accent-amber)' : 'rgba(245,158,11,0.15)', color: activeTabSection === 'PENDING_QUEUE' ? '#000' : 'var(--accent-amber)', border: '1px solid rgba(245,158,11,0.4)' }
-  }, "⏳ Pending Staff Review Queue (" + pendingReviewItems.length + ")"), canManage && React.createElement("button", {
+    onClick: function() { setActiveTabSection('PENDING_QUEUE'); },
+    style: { fontSize: '0.88rem', fontWeight: 700, background: activeTabSection === 'PENDING_QUEUE' ? 'var(--accent-amber)' : 'rgba(245,158,11,0.15)', color: activeTabSection === 'PENDING_QUEUE' ? '#000' : 'var(--accent-amber)', border: '1px solid rgba(245,158,11,0.4)', cursor: 'pointer' }
+  }, "⏳ Pending Staff Review Queue (" + pendingReviewItems.length + ")"), React.createElement("button", {
+    className: "btn " + (activeTabSection === 'CLAIMED_QUEUE' ? 'btn-primary' : 'btn-secondary'),
+    onClick: function() { setActiveTabSection('CLAIMED_QUEUE'); },
+    style: { fontSize: '0.88rem', fontWeight: 700, background: activeTabSection === 'CLAIMED_QUEUE' ? 'var(--accent-emerald)' : 'rgba(16,185,129,0.15)', color: activeTabSection === 'CLAIMED_QUEUE' ? '#000' : 'var(--accent-emerald)', border: '1px solid rgba(16,185,129,0.4)', cursor: 'pointer' }
+  }, "✅ Claimed Items Vault (" + claimedItems.length + ")"), canManage && React.createElement("button", {
     className: "btn " + (activeTabSection === 'CLAIMS_QUEUE' ? 'btn-primary' : 'btn-secondary'),
-    onClick: () => setActiveTabSection('CLAIMS_QUEUE'),
-    style: { fontSize: '0.88rem', fontWeight: 700, background: activeTabSection === 'CLAIMS_QUEUE' ? 'var(--accent-cyan)' : 'rgba(0,242,254,0.15)', color: activeTabSection === 'CLAIMS_QUEUE' ? '#000' : 'var(--accent-cyan)', border: '1px solid rgba(0,242,254,0.4)' }
-  }, "🙋‍♂️ Received Claim Appeals (" + claimsList.filter(c => c.status === 'PENDING_VERIFICATION').length + ")")),
+    onClick: function() { setActiveTabSection('CLAIMS_QUEUE'); },
+    style: { fontSize: '0.88rem', fontWeight: 700, background: activeTabSection === 'CLAIMS_QUEUE' ? 'var(--accent-cyan)' : 'rgba(0,242,254,0.15)', color: activeTabSection === 'CLAIMS_QUEUE' ? '#000' : 'var(--accent-cyan)', border: '1px solid rgba(0,242,254,0.4)', cursor: 'pointer' }
+  }, "🙋‍♂️ Received Claim Appeals (" + claimsList.filter(function(c) { return c.status === 'PENDING_VERIFICATION'; }).length + ")")),
 
-  // SECTION 1: PUBLIC APPROVED GALLERY VIEW
+  // SECTION 1: PUBLIC UNCLAIMED GALLERY
   activeTabSection === 'GALLERY' && React.createElement("div", {
     style: { display: 'flex', flexDirection: 'column', gap: '1.25rem' }
   }, React.createElement("div", {
     style: { display: 'flex', gap: '0.5rem', alignItems: 'center' }
   }, React.createElement("span", { style: { fontSize: '0.8rem', color: 'var(--text-secondary)' } }, "Filter Tag:"), React.createElement("button", {
     className: "btn " + (filterTag === 'ALL' ? 'btn-primary' : 'btn-secondary'),
-    onClick: () => setFilterTag('ALL'),
-    style: { fontSize: '0.75rem', padding: '0.3rem 0.65rem' }
+    onClick: function() { setFilterTag('ALL'); },
+    style: { fontSize: '0.75rem', padding: '0.3rem 0.65rem', cursor: 'pointer' }
   }, "All Items"), React.createElement("button", {
     className: "btn " + (filterTag === 'LOST' ? 'btn-primary' : 'btn-secondary'),
-    onClick: () => setFilterTag('LOST'),
-    style: { fontSize: '0.75rem', padding: '0.3rem 0.65rem', background: filterTag === 'LOST' ? 'var(--accent-amber)' : '', color: filterTag === 'LOST' ? '#000' : '' }
+    onClick: function() { setFilterTag('LOST'); },
+    style: { fontSize: '0.75rem', padding: '0.3rem 0.65rem', background: filterTag === 'LOST' ? 'var(--accent-amber)' : '', color: filterTag === 'LOST' ? '#000' : '', cursor: 'pointer' }
   }, "🔴 Reported Lost"), React.createElement("button", {
     className: "btn " + (filterTag === 'FOUND' ? 'btn-primary' : 'btn-secondary'),
-    onClick: () => setFilterTag('FOUND'),
-    style: { fontSize: '0.75rem', padding: '0.3rem 0.65rem', background: filterTag === 'FOUND' ? 'var(--accent-emerald)' : '', color: filterTag === 'FOUND' ? '#000' : '' }
+    onClick: function() { setFilterTag('FOUND'); },
+    style: { fontSize: '0.75rem', padding: '0.3rem 0.65rem', background: filterTag === 'FOUND' ? 'var(--accent-emerald)' : '', color: filterTag === 'FOUND' ? '#000' : '', cursor: 'pointer' }
   }, "🟢 Found / Recovered")), React.createElement("div", {
     className: "grid-3",
     style: { gap: '1.25rem' }
-  }, filteredPublicItems.map(item => React.createElement("div", {
-    key: item.id,
-    className: "glass-card",
-    style: { display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '3px solid ' + (item.type === 'LOST' ? 'var(--accent-amber)' : 'var(--accent-emerald)') }
-  }, React.createElement("div", null, React.createElement("div", {
-    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }
-  }, React.createElement("span", {
-    className: "badge " + (item.type === 'LOST' ? 'badge-warning' : 'badge-success')
-  }, item.type === 'LOST' ? '🔴 LOST' : '🟢 FOUND'), React.createElement("span", {
-    style: { fontSize: '0.7rem', color: 'var(--text-muted)' }
-  }, item.date)), React.createElement("h4", {
-    style: { color: '#fff', margin: '0 0 0.4rem 0', fontSize: '0.95rem', fontWeight: 700 }
-  }, item.title), React.createElement("div", {
-    style: { fontSize: '0.78rem', color: 'var(--accent-cyan)', marginBottom: '0.4rem' }
-  }, "📍 Location: " + item.location), React.createElement("p", {
-    style: { fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 0.85rem 0', lineHeight: '1.4' }
-  }, item.description)), React.createElement("div", {
-    style: { borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }
-  }, React.createElement("div", {
-    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
-  }, React.createElement("span", {
-    className: "badge " + (item.status === 'UNCLAIMED' ? 'badge-info' : 'badge-success'),
-    style: { fontSize: '0.65rem' }
-  }, item.status), React.createElement("span", {
-    style: { fontSize: '0.7rem', color: '#fbbf24', fontWeight: 600 }
-  }, "Ownership Claim Open")), React.createElement("div", {
-    style: {
-      padding: '0.6rem 0.75rem',
-      borderRadius: '8px',
-      background: 'rgba(245, 158, 11, 0.15)',
-      border: '1.5px solid rgba(245, 158, 11, 0.55)',
-      boxShadow: '0 4px 14px rgba(245, 158, 11, 0.2)',
-      display: 'flex',
-      justify: 'space-between',
-      alignItems: 'center',
-      gap: '0.5rem'
-    }
-  }, React.createElement("span", {
-    style: { fontSize: '0.73rem', color: '#fff', fontWeight: 600 }
-  }, "Belongs to you?"), React.createElement("button", {
-    className: "btn btn-primary",
-    onClick: () => openAppealModal(item),
-    style: {
-      fontSize: '0.8rem',
-      padding: '0.5rem 0.9rem',
-      background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
-      color: '#000000',
-      fontWeight: 900,
-      border: 'none',
-      borderRadius: '6px',
-      boxShadow: '0 0 12px rgba(245, 158, 11, 0.6)',
-      cursor: 'pointer'
-    }
-  }, "🙋‍♂️ Appeal / Claim Item")))))), filteredPublicItems.length === 0 && React.createElement("div", {
+  }, filteredUnclaimedItems.map(function(item) {
+    return React.createElement("div", {
+      key: item.id,
+      className: "glass-card",
+      style: { display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '3px solid ' + (item.type === 'LOST' ? 'var(--accent-amber)' : 'var(--accent-emerald)') }
+    }, React.createElement("div", null, React.createElement("div", {
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }
+    }, React.createElement("span", {
+      className: "badge " + (item.type === 'LOST' ? 'badge-warning' : 'badge-success')
+    }, item.type === 'LOST' ? '🔴 LOST' : '🟢 FOUND'), React.createElement("span", {
+      style: { fontSize: '0.7rem', color: 'var(--text-muted)' }
+    }, item.date)), React.createElement("h4", {
+      style: { color: '#fff', margin: '0 0 0.4rem 0', fontSize: '0.95rem', fontWeight: 700 }
+    }, item.title), React.createElement("div", {
+      style: { fontSize: '0.78rem', color: 'var(--accent-cyan)', marginBottom: '0.4rem' }
+    }, "📍 Location: " + item.location), React.createElement("p", {
+      style: { fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 0.85rem 0', lineHeight: '1.4' }
+    }, item.description)), React.createElement("div", {
+      style: { borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }
+    }, React.createElement("div", {
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
+    }, React.createElement("span", {
+      className: "badge badge-info",
+      style: { fontSize: '0.7rem', fontWeight: 800, padding: '0.3rem 0.6rem' }
+    }, item.status), React.createElement("span", {
+      style: { fontSize: '0.7rem', color: '#fbbf24', fontWeight: 700 }
+    }, "Ownership Claim Open")), React.createElement("div", {
+      style: {
+        padding: '0.6rem 0.75rem',
+        borderRadius: '8px',
+        background: 'rgba(245, 158, 11, 0.15)',
+        border: '1.5px solid rgba(245, 158, 11, 0.55)',
+        boxShadow: '0 4px 14px rgba(245, 158, 11, 0.2)',
+        display: 'flex',
+        justify: 'space-between',
+        alignItems: 'center',
+        gap: '0.5rem'
+      }
+    }, React.createElement("span", {
+      style: { fontSize: '0.73rem', color: '#fff', fontWeight: 600 }
+    }, "Belongs to you?"), React.createElement("button", {
+      className: "btn btn-primary",
+      onClick: function(e) { openAppealModal(item, e); },
+      style: {
+        fontSize: '0.8rem',
+        padding: '0.5rem 0.9rem',
+        background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+        color: '#000000',
+        fontWeight: 900,
+        border: 'none',
+        borderRadius: '6px',
+        boxShadow: '0 0 12px rgba(245, 158, 11, 0.6)',
+        cursor: 'pointer'
+      }
+    }, "🙋‍♂️ Appeal / Claim Item"))));
+  })), filteredUnclaimedItems.length === 0 && React.createElement("div", {
     className: "glass-card",
     style: { textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }
-  }, "No public unclaimed items matching filter.")),
+  }, "No unclaimed items matching filter.")),
 
-  // SECTION 2: STAFF PENDING REVIEW QUEUE
-  activeTabSection === 'PENDING_QUEUE' && canManage && React.createElement("div", {
+  // SECTION 2: PUBLIC PENDING STAFF REVIEW QUEUE TAB
+  activeTabSection === 'PENDING_QUEUE' && React.createElement("div", {
     style: { display: 'flex', flexDirection: 'column', gap: '1rem' }
-  }, React.createElement("h3", { style: { color: 'var(--accent-amber)', margin: 0, fontSize: '1.1rem' } }, "⏳ User Submissions Awaiting Staff & Admin Approval (" + pendingReviewItems.length + ")"), pendingReviewItems.map(item => React.createElement("div", {
-    key: item.id,
-    className: "glass-card",
-    style: { borderLeft: '4px solid var(--accent-amber)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }
-  }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.25rem' } }, React.createElement("span", { className: "badge " + (item.type === 'LOST' ? 'badge-warning' : 'badge-success') }, item.type === 'LOST' ? '🔴 LOST REPORT' : '🟢 FOUND REPORT'), React.createElement("strong", { style: { color: '#fff', fontSize: '0.95rem' } }, item.title)), React.createElement("div", { style: { fontSize: '0.78rem', color: 'var(--text-secondary)' } }, "Reported by: ", React.createElement("strong", { style: { color: 'var(--accent-cyan)' } }, item.reporter), " (", item.contactInfo || 'No Contact Provided', ") • Date: ", item.date), React.createElement("div", { style: { fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' } }, "Location: ", item.location, " — ", item.description)), React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } }, React.createElement("button", {
-    className: "btn btn-primary",
-    onClick: () => handleApproveReport(item.id, item.title),
-    style: { background: 'var(--accent-emerald)', color: '#000', fontWeight: 800, fontSize: '0.8rem' }
-  }, "✅ Approve & Publish"), React.createElement("button", {
-    className: "btn btn-secondary",
-    onClick: () => handleRejectReport(item.id, item.title),
-    style: { color: 'var(--accent-rose)', border: '1px solid var(--accent-rose)', fontSize: '0.8rem' }
-  }, "❌ Reject")))), pendingReviewItems.length === 0 && React.createElement("div", {
+  }, React.createElement("h3", { style: { color: 'var(--accent-amber)', margin: 0, fontSize: '1.1rem' } }, "⏳ Items & Claim Appeals Awaiting Staff Verification (" + pendingReviewItems.length + ")"), pendingReviewItems.map(function(item) {
+    return React.createElement("div", {
+      key: item.id,
+      className: "glass-card",
+      style: { borderLeft: '4px solid var(--accent-amber)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }
+    }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.25rem' } }, React.createElement("span", { className: "badge " + (item.claimPending ? 'badge-info' : item.type === 'LOST' ? 'badge-warning' : 'badge-success') }, item.claimPending ? '🙋‍♂️ CLAIM VERIFICATION UNDER REVIEW' : item.type === 'LOST' ? '🔴 LOST REPORT REVIEW' : '🟢 FOUND REPORT REVIEW'), React.createElement("strong", { style: { color: '#fff', fontSize: '0.95rem' } }, item.title)), React.createElement("div", { style: { fontSize: '0.78rem', color: 'var(--text-secondary)' } }, item.claimPending ? "Claimant: " + (item.pendingClaimant || 'Passenger') + " • Status: Claim Appeal Received" : "Reported by: " + item.reporter + " (" + (item.contactInfo || 'No Contact') + ") • Date: " + item.date), React.createElement("div", { style: { fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' } }, "Location: ", item.location, " — ", item.description)), canManage ? React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } }, React.createElement("button", {
+      className: "btn btn-primary",
+      onClick: function() { handleApproveReport(item.id, item.title, item.claimPending); },
+      style: { background: 'var(--accent-emerald)', color: '#000', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }
+    }, item.claimPending ? "✅ Approve & Mark CLAIMED" : "✅ Approve & Publish"), React.createElement("button", {
+      className: "btn btn-secondary",
+      onClick: function() { handleRejectReport(item.id, item.title, item.claimPending); },
+      style: { color: 'var(--accent-rose)', border: '1px solid var(--accent-rose)', fontSize: '0.8rem', cursor: 'pointer' }
+    }, "❌ Reject")) : React.createElement("div", {
+      style: { fontSize: '0.78rem', color: 'var(--accent-amber)', background: 'rgba(245,158,11,0.15)', padding: '0.4rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(245,158,11,0.3)' }
+    }, "⏳ Under Staff & Admin Verification Review"));
+  }), pendingReviewItems.length === 0 && React.createElement("div", {
     className: "glass-card",
     style: { textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }
-  }, "No pending item reports awaiting review.")),
+  }, "No item reports or claim appeals currently in Pending Staff Review Queue.")),
 
-  // SECTION 3: STAFF CLAIMS QUEUE
+  // SECTION 3: DEDICATED CLAIMED ITEMS VAULT TAB
+  activeTabSection === 'CLAIMED_QUEUE' && React.createElement("div", {
+    style: { display: 'flex', flexDirection: 'column', gap: '1rem' }
+  }, React.createElement("h3", { style: { color: 'var(--accent-emerald)', margin: 0, fontSize: '1.1rem' } }, "✅ Verified & Claimed Items Vault (" + claimedItems.length + ")"), React.createElement("div", {
+    className: "grid-3",
+    style: { gap: '1.25rem' }
+  }, claimedItems.map(function(item) {
+    return React.createElement("div", {
+      key: item.id,
+      className: "glass-card",
+      style: { borderTop: '3px solid var(--accent-emerald)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }
+    }, React.createElement("div", null, React.createElement("div", {
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }
+    }, React.createElement("span", {
+      className: "badge badge-success",
+      style: { fontSize: '0.7rem', fontWeight: 800, padding: '0.3rem 0.65rem' }
+    }, "✅ CLAIMED"), React.createElement("span", {
+      style: { fontSize: '0.7rem', color: 'var(--accent-emerald)', fontWeight: 700 }
+    }, "Verified by Staff")), React.createElement("h4", {
+      style: { color: '#fff', margin: '0 0 0.4rem 0', fontSize: '0.95rem', fontWeight: 700 }
+    }, item.title), React.createElement("div", {
+      style: { fontSize: '0.78rem', color: 'var(--accent-cyan)', marginBottom: '0.4rem' }
+    }, "📍 Location: " + item.location), React.createElement("p", {
+      style: { fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 0.85rem 0', lineHeight: '1.4' }
+    }, item.description)), React.createElement("div", {
+      style: {
+        padding: '0.65rem 0.85rem',
+        borderRadius: '8px',
+        background: 'rgba(16, 185, 129, 0.15)',
+        border: '1.5px solid rgba(16, 185, 129, 0.55)',
+        boxShadow: '0 0 12px rgba(16, 185, 129, 0.25)',
+        display: 'flex',
+        alignItems: 'center',
+        justify: 'center',
+        gap: '0.5rem',
+        color: 'var(--accent-emerald)',
+        fontWeight: 800,
+        fontSize: '0.82rem',
+        marginTop: '0.5rem'
+      }
+    }, "🎉 ITEM CLAIMED & VERIFIED BY STAFF"));
+  })), claimedItems.length === 0 && React.createElement("div", {
+    className: "glass-card",
+    style: { textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }
+  }, "No claimed items archived yet.")),
+
+  // SECTION 4: RECEIVED CLAIM APPEALS (STAFF/ADMIN ONLY)
   activeTabSection === 'CLAIMS_QUEUE' && canManage && React.createElement("div", {
     style: { display: 'flex', flexDirection: 'column', gap: '1rem' }
-  }, React.createElement("h3", { style: { color: 'var(--accent-cyan)', margin: 0, fontSize: '1.1rem' } }, "🙋‍♂️ Passenger Item Claim Appeals (" + claimsList.length + ")"), claimsList.map(claim => React.createElement("div", {
-    key: claim.id,
-    className: "glass-card",
-    style: { borderLeft: '4px solid ' + (claim.status === 'APPROVED' ? 'var(--accent-emerald)' : 'var(--accent-cyan)'), display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }
-  }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.25rem' } }, React.createElement("strong", { style: { color: 'var(--accent-cyan)', fontSize: '0.95rem' } }, claim.claimantName), React.createElement("span", { className: "badge badge-info", style: { fontSize: '0.65rem' } }, claim.status)), React.createElement("div", { style: { fontSize: '0.78rem', color: '#fff', fontWeight: 600 } }, "Claimed Item: ", claim.itemTitle), React.createElement("div", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Contact: ", claim.claimantContact, " • Flight: ", claim.flightNo || 'N/A', " • Time: ", claim.timestamp), React.createElement("div", { style: { fontSize: '0.75rem', color: 'var(--accent-amber)', marginTop: '0.25rem', background: 'rgba(0,0,0,0.25)', padding: '0.4rem 0.6rem', borderRadius: '6px' } }, "Proof Details: ", claim.proofDetails)), claim.status === 'PENDING_VERIFICATION' && React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } }, React.createElement("button", {
-    className: "btn btn-primary",
-    onClick: () => handleApproveClaim(claim.id, claim.itemId, claim.itemTitle),
-    style: { background: 'var(--accent-emerald)', color: '#000', fontWeight: 800, fontSize: '0.8rem' }
-  }, "✅ Verify & Approve Claim"), React.createElement("button", {
-    className: "btn btn-secondary",
-    onClick: () => handleDismissClaim(claim.id),
-    style: { fontSize: '0.8rem' }
-  }, "❌ Dismiss")))), claimsList.length === 0 && React.createElement("div", {
+  }, React.createElement("h3", { style: { color: 'var(--accent-cyan)', margin: 0, fontSize: '1.1rem' } }, "🙋‍♂️ Passenger Item Claim Appeals (" + claimsList.length + ")"), claimsList.map(function(claim) {
+    return React.createElement("div", {
+      key: claim.id,
+      className: "glass-card",
+      style: { borderLeft: '4px solid ' + (claim.status === 'APPROVED' ? 'var(--accent-emerald)' : 'var(--accent-cyan)'), display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }
+    }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.25rem' } }, React.createElement("strong", { style: { color: 'var(--accent-cyan)', fontSize: '0.95rem' } }, claim.claimantName), React.createElement("span", { className: "badge badge-info", style: { fontSize: '0.65rem' } }, claim.status)), React.createElement("div", { style: { fontSize: '0.78rem', color: '#fff', fontWeight: 600 } }, "Claimed Item: ", claim.itemTitle), React.createElement("div", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Contact: ", claim.claimantContact, " • Flight: ", claim.flightNo || 'N/A', " • Time: ", claim.timestamp), React.createElement("div", { style: { fontSize: '0.75rem', color: 'var(--accent-amber)', marginTop: '0.25rem', background: 'rgba(0,0,0,0.25)', padding: '0.4rem 0.6rem', borderRadius: '6px' } }, "Proof Details: ", claim.proofDetails)), claim.status === 'PENDING_VERIFICATION' && React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } }, React.createElement("button", {
+      className: "btn btn-primary",
+      onClick: function() { handleApproveClaim(claim.id, claim.itemId, claim.itemTitle); },
+      style: { background: 'var(--accent-emerald)', color: '#000', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }
+    }, "✅ Verify & Approve Claim"), React.createElement("button", {
+      className: "btn btn-secondary",
+      onClick: function() { handleDismissClaim(claim.id); },
+      style: { fontSize: '0.8rem', cursor: 'pointer' }
+    }, "❌ Dismiss")));
+  }), claimsList.length === 0 && React.createElement("div", {
     className: "glass-card",
     style: { textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }
   }, "No passenger claim appeals logged yet.")),
 
-  // REPORT MISSING / FOUND ITEM MODAL
-  showReportModal && React.createElement("div", {
-    style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }
-  }, React.createElement("div", {
-    className: "glass-card",
-    style: { width: '100%', maxWidth: '520px', background: '#0f172a', border: '1px solid var(--accent-amber)', borderRadius: '12px', padding: '1.5rem' }
-  }, React.createElement("div", {
-    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }
-  }, React.createElement("h3", {
-    style: { margin: 0, color: 'var(--accent-amber)', fontWeight: 800 }
-  }, "+ Report Missing or Found Item"), React.createElement("button", {
-    onClick: () => setShowReportModal(false),
-    style: { background: 'none', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }
-  }, "✖")), React.createElement("form", {
-    onSubmit: handleReportSubmit,
-    style: { display: 'flex', flexDirection: 'column', gap: '0.85rem' }
-  }, React.createElement("div", { className: "grid-2", style: { gap: '0.75rem' } }, React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Report Type"), React.createElement("select", {
-    className: "form-input",
-    value: reportForm.type,
-    onChange: e => setReportForm({ ...reportForm, type: e.target.value }),
-    style: { background: '#0f172a', color: '#fff' }
-  }, React.createElement("option", { value: "LOST" }, "🔴 Lost Item"), React.createElement("option", { value: "FOUND" }, "🟢 Found Item"))), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Item Category"), React.createElement("select", {
-    className: "form-input",
-    value: reportForm.category,
-    onChange: e => setReportForm({ ...reportForm, category: e.target.value }),
-    style: { background: '#0f172a', color: '#fff' }
-  }, React.createElement("option", { value: "Electronics" }, "Electronics"), React.createElement("option", { value: "Luggage" }, "Luggage / Bags"), React.createElement("option", { value: "Documents" }, "Passport / Documents"), React.createElement("option", { value: "Clothing" }, "Clothing / Accessories"), React.createElement("option", { value: "Keys" }, "Keys / Wallet")))), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Item Title / Name"), React.createElement("input", {
-    className: "form-input",
-    placeholder: "e.g. Apple iPad Pro 11-inch (Space Gray)",
-    value: reportForm.title,
-    onChange: e => setReportForm({ ...reportForm, title: e.target.value }),
-    required: true
-  })), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Location Lost / Found"), React.createElement("input", {
-    className: "form-input",
-    placeholder: "e.g. Terminal 3 Gate 42 Security Area",
-    value: reportForm.location,
-    onChange: e => setReportForm({ ...reportForm, location: e.target.value })
-  })), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Detailed Description & Identifying Marks"), React.createElement("textarea", {
-    className: "form-input",
-    rows: 3,
-    placeholder: "Describe colors, stickers, case type, contents...",
-    value: reportForm.description,
-    onChange: e => setReportForm({ ...reportForm, description: e.target.value }),
-    required: true
-  })), React.createElement("div", { className: "grid-2", style: { gap: '0.75rem' } }, React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Your Name"), React.createElement("input", {
-    className: "form-input",
-    placeholder: "Full Name",
-    value: reportForm.contactName,
-    onChange: e => setReportForm({ ...reportForm, contactName: e.target.value }),
-    required: true
-  })), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Contact Phone / Email"), React.createElement("input", {
-    className: "form-input",
-    placeholder: "+91 9876543210",
-    value: reportForm.contactInfo,
-    onChange: e => setReportForm({ ...reportForm, contactInfo: e.target.value }),
-    required: true
-  }))), React.createElement("div", {
-    style: { fontSize: '0.7rem', color: 'var(--accent-amber)', background: 'rgba(245,158,11,0.1)', padding: '0.5rem', borderRadius: '6px' }
-  }, "ℹ️ Submitted reports will be sent to Staff & Admin for review before being published to the public gallery."), React.createElement("button", {
-    type: "submit",
-    className: "btn btn-primary",
-    style: { marginTop: '0.35rem', padding: '0.75rem', fontWeight: 800, background: 'linear-gradient(135deg, var(--accent-amber), #d97706)', color: '#000' }
-  }, "📤 Submit Report for Staff Review")))),
-
-  // PUBLIC ITEM CLAIM APPEAL MODAL (No Login Required)
-  showAppealModal && selectedItemForAppeal && React.createElement("div", {
-    style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }
-  }, React.createElement("div", {
-    className: "glass-card",
-    style: { width: '100%', maxWidth: '520px', background: '#0f172a', border: '1px solid var(--accent-cyan)', borderRadius: '12px', padding: '1.5rem' }
-  }, React.createElement("div", {
-    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }
-  }, React.createElement("h3", {
-    style: { margin: 0, color: 'var(--accent-cyan)', fontWeight: 800 }
-  }, "🙋‍♂️ Appeal Ownership for: " + selectedItemForAppeal.title), React.createElement("button", {
-    onClick: () => setShowAppealModal(false),
-    style: { background: 'none', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }
-  }, "✖")), React.createElement("form", {
-    onSubmit: handleAppealSubmit,
-    style: { display: 'flex', flexDirection: 'column', gap: '0.85rem' }
-  }, React.createElement("div", {
-    style: { background: 'rgba(0,242,254,0.1)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(0,242,254,0.3)', fontSize: '0.78rem' }
-  }, React.createElement("strong", { style: { color: 'var(--accent-cyan)' } }, "Item: "), selectedItemForAppeal.title, React.createElement("br", null), React.createElement("span", { style: { color: 'var(--text-muted)' } }, "Location: " + selectedItemForAppeal.location)), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Your Full Name"), React.createElement("input", {
-    className: "form-input",
-    placeholder: "Enter your name...",
-    value: appealForm.claimantName,
-    onChange: e => setAppealForm({ ...appealForm, claimantName: e.target.value }),
-    required: true
-  })), React.createElement("div", { className: "grid-2", style: { gap: '0.75rem' } }, React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Contact Phone / Email"), React.createElement("input", {
-    className: "form-input",
-    placeholder: "+91 9876543210 / email",
-    value: appealForm.claimantContact,
-    onChange: e => setAppealForm({ ...appealForm, claimantContact: e.target.value }),
-    required: true
-  })), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Flight Number (If Applicable)"), React.createElement("input", {
-    className: "form-input",
-    placeholder: "e.g. AI-102",
-    value: appealForm.flightNo,
-    onChange: e => setAppealForm({ ...appealForm, flightNo: e.target.value })
-  }))), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Proof of Ownership / Unique Identifying Features"), React.createElement("textarea", {
-    className: "form-input",
-    rows: 3,
-    placeholder: "Provide serial numbers, passcode description, stickers, unique scratches, or exact item contents to verify ownership...",
-    value: appealForm.proofDetails,
-    onChange: e => setAppealForm({ ...appealForm, proofDetails: e.target.value }),
-    required: true
-  })), React.createElement("button", {
-    type: "submit",
-    className: "btn btn-primary",
-    style: { marginTop: '0.35rem', padding: '0.75rem', fontWeight: 800, background: 'linear-gradient(135deg, var(--accent-cyan), #0284c7)', color: '#000' }
-  }, "🙋‍♂️ Submit Claim Appeal for Staff Verification")))));
+  renderPortalModal(reportModalJSX),
+  renderPortalModal(appealModalJSX)
+  );
 }
 
 function WheelchairView({
@@ -14679,66 +14853,69 @@ function OlaCabBookingView({
 
 // RENDER
 function ErrorBoundary(props) {
-  React.Component.call(this, props);
+  if (typeof React !== 'undefined' && React.Component) {
+    React.Component.call(this, props);
+  }
   this.state = { hasError: false, error: null };
 }
-ErrorBoundary.prototype = Object.create(React.Component.prototype);
-ErrorBoundary.prototype.constructor = ErrorBoundary;
-ErrorBoundary.getDerivedStateFromError = function(error) {
-  return { hasError: true, error: error };
-};
-ErrorBoundary.prototype.componentDidCatch = function(error, errorInfo) {
-  console.error("ErrorBoundary caught error:", error, errorInfo);
-};
-ErrorBoundary.prototype.render = function() {
-  if (this.state.hasError) {
-    return React.createElement("div", {
-      style: {
-        padding: '3rem',
-        textAlign: 'center',
-        background: '#070a12',
-        color: '#fff',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '1.5rem',
-        fontFamily: 'sans-serif'
-      }
-    }, React.createElement("div", {
-      style: { fontSize: '3.5rem' }
-    }, "✈️⚠️"), React.createElement("h2", {
-      style: { color: '#00f2fe', margin: 0 }
-    }, "AAI AeroPulse OS — Webpage Auto-Recovery"), React.createElement("p", {
-      style: { color: '#94a3b8', maxWidth: '520px', margin: 0, lineHeight: '1.5' }
-    }, "An unexpected state conflict occurred in local storage. Click below to restore all operational data cleanly."), React.createElement("button", {
-      style: {
-        padding: '0.8rem 1.6rem',
-        borderRadius: '8px',
-        background: 'linear-gradient(135deg, #00f2fe, #4facfe)',
-        color: '#000',
-        fontWeight: 'bold',
-        border: 'none',
-        cursor: 'pointer'
-      },
-      onClick: () => {
-        localStorage.clear();
-        window.location.reload();
-      }
-    }, "🔄 Reset LocalStorage & Restore Webpage"));
-  }
-  return this.props.children;
-};
 
-const rootContainer = document.getElementById('root');
-if (rootContainer) {
-  const appTree = React.createElement(ErrorBoundary, null, React.createElement(App, null));
-  if (typeof ReactDOM.createRoot === 'function') {
-    ReactDOM.createRoot(rootContainer).render(appTree);
-  } else if (typeof ReactDOM.render === 'function') {
-    ReactDOM.render(appTree, rootContainer);
-  } else {
-    console.error('Neither ReactDOM.createRoot nor ReactDOM.render is available.');
+if (typeof React !== 'undefined' && React.Component && React.Component.prototype) {
+  ErrorBoundary.prototype = Object.create(React.Component.prototype);
+  ErrorBoundary.prototype.constructor = ErrorBoundary;
+  ErrorBoundary.getDerivedStateFromError = function(error) {
+    return { hasError: true, error: error };
+  };
+  ErrorBoundary.prototype.componentDidCatch = function(error, errorInfo) {
+    console.error("ErrorBoundary caught error:", error, errorInfo);
+  };
+  ErrorBoundary.prototype.render = function() {
+    if (this.state.hasError) {
+      return React.createElement("div", {
+        style: {
+          padding: '3rem',
+          textAlign: 'center',
+          background: '#070a12',
+          color: '#fff',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'Outfit, sans-serif'
+        }
+      }, React.createElement("h2", { style: { color: 'var(--accent-amber)' } }, "⚠️ AeroPulse OS Component Error"), React.createElement("p", null, String(this.state.error?.message || "An unexpected error occurred.")), React.createElement("button", {
+        className: "btn btn-primary",
+        onClick: () => window.location.reload(),
+        style: { marginTop: '1rem' }
+      }, "🔄 Refresh AeroPulse OS"));
+    }
+    return this.props.children;
+  };
+} else {
+  ErrorBoundary.prototype = {
+    render: function() { return this.props ? this.props.children : null; }
+  };
+}
+
+const {
+  useState,
+  useEffect,
+  useRef,
+  useCallback
+} = React;
+
+// ═══════════════════════════════════════════════════════
+// CONSTANTS & SEED DATA
+// ═══════════════════════════════════════════════════════
+
+
+
+var container = document.getElementById('root');
+if (container) {
+  if (typeof ReactDOM !== 'undefined' && ReactDOM.createRoot) {
+    var root = ReactDOM.createRoot(container);
+    root.render(React.createElement(ErrorBoundary, null, React.createElement(App, null)));
+  } else if (typeof ReactDOM !== 'undefined' && ReactDOM.render) {
+    ReactDOM.render(React.createElement(ErrorBoundary, null, React.createElement(App, null)), container);
   }
 }
