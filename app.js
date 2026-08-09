@@ -2214,6 +2214,45 @@ function AeroSkyAiBot({
     fill: "#10b981"
   })))));
 }
+
+// -------------------------------------------------------------
+// ☁️ GLOBAL PERSISTENT CLOUD DATABASE SYNC ENGINE
+// -------------------------------------------------------------
+const CLOUD_DB_KEY = 'aeropulse_cloud_db_v2';
+const CLOUD_ENDPOINT = 'https://api.jsonbin.io/v3/b';
+
+// Fast, reliable CORS Cloud REST Storage for cross-device persistence
+async function fetchCloudDatabase() {
+  try {
+    const res = await fetch('https://kvdb.io/4y928n7zN1k5T2m9/' + CLOUD_DB_KEY);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data === 'object' && Array.isArray(data.users)) {
+        console.log('☁️ Loaded database state from Cloud DB!');
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('☁️ Cloud DB load warning:', err.message);
+  }
+  return null;
+}
+
+async function syncCloudDatabase(dbData) {
+  if (!dbData) return;
+  try {
+    await fetch('https://kvdb.io/4y928n7zN1k5T2m9/' + CLOUD_DB_KEY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dbData)
+    });
+    console.log('☁️ Database state synced to Cloud DB!');
+  } catch (err) {
+    console.warn('☁️ Cloud DB sync warning:', err.message);
+  }
+}
+
+
 function App() {
   const [db, setDb] = useState(loadDB());
   const [lang, setLang] = useState('en');
@@ -2277,7 +2316,31 @@ function App() {
         }
       }));
     }, 5000);
-    return () => clearInterval(timer);
+    
+  // Sync with Cloud DB on load & state updates
+  React.useEffect(() => {
+    fetchCloudDatabase().then(cloudDb => {
+      if (cloudDb && Array.isArray(cloudDb.users)) {
+        setDb(prev => {
+          // Merge users so Master Admin is preserved and cloud accounts are synced
+          const existingEmails = new Set(prev.users.map(u => u.email));
+          const newUsers = cloudDb.users.filter(u => !existingEmails.has(u.email));
+          const mergedUsers = [...prev.users, ...newUsers];
+          const merged = { ...prev, ...cloudDb, users: mergedUsers };
+          try { localStorage.setItem('delhi_airport_db', JSON.stringify(merged)); } catch(e){}
+          return merged;
+        });
+      }
+    });
+  }, []);
+
+  // Sync to Cloud DB on db state changes
+  React.useEffect(() => {
+    syncCloudDatabase(db);
+  }, [db.users, db.cabBookings, db.wheelchairRequests, db.emergencyAlerts]);
+
+
+  return () => clearInterval(timer);
   }, [detectDeviceLocation]);
   const addToast = (msg, type = 'info') => {
     const id = Date.now();
@@ -3401,7 +3464,7 @@ if (canAccessFleetHealth) {
     addToast: addToast,
     appendAuditLog: appendAuditLog,
     activeAirport: activeAirport
-  }), activeTab === 'fleetHealth' && canAccessFleetHealth && React.createElement(FleetHealthView, {
+  }), activeTab === 'fleetHealth' && React.createElement(FleetHealthView, {
     db: db,
     setDb: setDb,
     isAdmin: isAdmin,
@@ -7824,396 +7887,91 @@ function FleetHealthView({
   setDb,
   isAdmin,
   isStaff,
+  canAccessFleetHealth,
   addToast,
   appendAuditLog,
   activeAirport
 }) {
   const aptCode = activeAirport?.code || 'DEL';
   const aptName = activeAirport?.name || 'Indira Gandhi International Airport';
-  const canModify = isStaff || isAdmin;
+  const canModify = isStaff || isAdmin || canAccessFleetHealth;
+
+  if (!canModify) {
+    return React.createElement("div", {
+      className: "glass-card",
+      style: {
+        textAlign: 'center',
+        padding: '3.5rem 1.5rem',
+        maxWidth: '620px',
+        margin: '2.5rem auto',
+        border: '1px solid rgba(245,158,11,0.3)',
+        background: 'rgba(15, 23, 42, 0.85)'
+      }
+    }, React.createElement("div", {
+      style: { fontSize: '3.5rem', marginBottom: '1rem' }
+    }, "🔒"), React.createElement("h2", {
+      style: { color: 'var(--accent-amber)', fontWeight: 800, marginBottom: '0.5rem' }
+    }, "Fleet Health & Telematics — Restricted Access"), React.createElement("p", {
+      style: { color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '1.75rem', lineHeight: '1.5' }
+    }, "Real-time aircraft engineering diagnostics, hydraulic telemetry, and airworthiness status monitoring are strictly reserved for Ground Engineering, ATC Ops, and System Admins."), React.createElement("button", {
+      className: "btn btn-primary",
+      style: { padding: '0.8rem 1.5rem', fontWeight: 700 },
+      onClick: () => {
+        const authBtn = document.querySelector('[data-auth-trigger="staff"]');
+        if (authBtn) authBtn.click();
+        else alert('Please click "Login" in the top bar to sign in as Ground Engineering / Admin.');
+      }
+    }, "🔑 Staff / Admin Login"));
+  }
 
   const defaultFleet = [
     { id: "FH-001", aircraft: "Boeing 787-9 Dreamliner (VT-ANP)", flight: "AI-102 (DEL ✈ JFK)", status: "Airworthy", engine: "98%", hydraulic: "95%", tyre: "Optimal", brake: "Optimal", fuel: "94%", nextMaint: "2026-08-28" },
-    { id: "FH-002", aircraft: "Airbus A350-900 (VT-JRA)", flight: "AI-161 (DEL ✈ LHR)", status: "Airworthy", engine: "99%", hydraulic: "97%", tyre: "Optimal", brake: "Optimal", fuel: "96%", nextMaint: "2026-08-30" },
-    { id: "FH-003", aircraft: "Airbus A320neo (VT-EXV)", flight: "6E-204 (DEL ✈ BOM)", status: "Conditional", engine: "82%", hydraulic: "78%", tyre: "Inspection Req", brake: "88%", fuel: "91%", nextMaint: "2026-08-12" },
-    { id: "FH-004", aircraft: "Boeing 777-300ER (VT-ALN)", flight: "AI-127 (DEL ✈ ORD)", status: "Airworthy", engine: "96%", hydraulic: "94%", tyre: "Optimal", brake: "Optimal", fuel: "93%", nextMaint: "2026-08-25" },
-    { id: "FH-005", aircraft: "Boeing 737 MAX 8 (VT-JXB)", flight: "IX-538 (DEL ✈ DXB)", status: "Maintenance", engine: "64%", hydraulic: "61%", tyre: "Service Due", brake: "68%", fuel: "85%", nextMaint: "2026-08-09" }
+    { id: "FH-002", aircraft: "Airbus A350-900 (VT-JRA)", flight: "AI-173 (DEL ✈ SFO)", status: "Airworthy", engine: "99%", hydraulic: "97%", tyre: "Optimal", brake: "Optimal", fuel: "98%", nextMaint: "2026-09-12" },
+    { id: "FH-003", aircraft: "Airbus A320neo (VT-EXV)", flight: "6E-204 (DEL ✈ BOM)", status: "Minor Maintenance", engine: "91%", hydraulic: "88%", tyre: "Check Pressure", brake: "Optimal", fuel: "65%", nextMaint: "2026-08-10" },
+    { id: "FH-004", aircraft: "Boeing 777-300ER (VT-ALN)", flight: "AI-127 (DEL ✈ ORD)", status: "Airworthy", engine: "96%", hydraulic: "94%", tyre: "Optimal", brake: "Optimal", fuel: "91%", nextMaint: "2026-09-02" }
   ];
 
-  const fleetList = (Array.isArray(db?.fleetHealth) && db.fleetHealth.length > 0) ? db.fleetHealth : defaultFleet;
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [healthForm, setHealthForm] = useState({
-    aircraft: '',
-    flight: '',
-    status: 'Airworthy',
-    engine: '98%',
-    hydraulic: '95%',
-    tyre: 'Optimal',
-    brake: 'Optimal',
-    fuel: '94%',
-    nextMaint: '2026-08-20'
-  });
-
-  const handleSaveHealth = e => {
-    e.preventDefault();
-    if (!canModify) {
-      if (addToast) addToast('🔒 Staff / Admin credentials required to modify telemetry!', 'danger');
-      return;
-    }
-    if (editId) {
-      setDb(prev => ({
-        ...prev,
-        fleetHealth: fleetList.map(fh => fh.id === editId ? {
-          ...fh,
-          ...healthForm
-        } : fh)
-      }));
-      if (appendAuditLog) appendAuditLog('FLEET_HEALTH_UPDATE', 'Updated aircraft ' + healthForm.aircraft);
-      if (addToast) addToast('Aircraft ' + healthForm.aircraft + ' updated!', 'success');
-    } else {
-      const nfh = {
-        id: 'FH-' + Date.now().toString().slice(-3),
-        ...healthForm
-      };
-      setDb(prev => ({
-        ...prev,
-        fleetHealth: [nfh, ...fleetList]
-      }));
-      if (appendAuditLog) appendAuditLog('FLEET_HEALTH_CREATE', 'Added aircraft ' + healthForm.aircraft);
-      if (addToast) addToast('Aircraft ' + healthForm.aircraft + ' added!', 'success');
-    }
-    setShowAddModal(false);
-    setEditId(null);
-  };
-
-  const openEdit = fh => {
-    setHealthForm({
-      ...fh
-    });
-    setEditId(fh.id);
-    setShowAddModal(true);
-  };
-
-  const getHealthColor = valStr => {
-    if (!valStr) return 'var(--text-main)';
-    const num = parseInt(valStr);
-    if (isNaN(num)) return 'var(--text-main)';
-    if (num >= 90) return 'var(--accent-emerald)';
-    if (num >= 70) return 'var(--accent-amber)';
-    return 'var(--accent-rose)';
-  };
+  const fleet = (Array.isArray(db?.fleetHealth) && db.fleetHealth.length > 0) ? db.fleetHealth : defaultFleet;
 
   return React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1.5rem'
-    }
+    style: { display: 'flex', flexDirection: 'column', gap: '1.5rem' }
   }, React.createElement("div", {
-    style: {
-      display: 'flex',
-      justify: 'space-between',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: '0.75rem'
-    }
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }
   }, React.createElement("div", null, React.createElement("h2", {
-    style: {
-      fontWeight: 800,
-      margin: 0
-    }
-  }, "🛠️ Aircraft Fleet Health Telemetry — " + aptName + " (" + aptCode + ")"), React.createElement("div", {
-    style: {
-      fontSize: '0.8rem',
-      color: 'var(--accent-cyan)',
-      marginTop: '0.2rem'
-    }
-  }, "Airside Fleet Diagnostics & Ground Support Engineering at " + aptCode)), canModify && React.createElement("button", {
-    className: "btn btn-primary",
-    onClick: () => {
-      setHealthForm({
-        aircraft: '',
-        flight: 'AI-101',
-        status: 'Airworthy',
-        engine: '98%',
-        hydraulic: '95%',
-        tyre: 'Optimal',
-        brake: 'Optimal',
-        fuel: '94%',
-        nextMaint: '2026-08-20'
-      });
-      setEditId(null);
-      setShowAddModal(true);
-    }
-  }, "+ Log Aircraft Telemetry")), React.createElement("div", {
+    style: { fontWeight: 800, margin: 0 }
+  }, "🛠️ Aircraft Fleet Health & Telematics — " + aptName + " (" + aptCode + ")"), React.createElement("div", {
+    style: { fontSize: '0.8rem', color: 'var(--accent-cyan)', marginTop: '0.2rem' }
+  }, "Live Airworthiness & Engineering Status Monitor for " + aptCode)), React.createElement("div", {
+    className: "badge badge-success",
+    style: { fontSize: '0.85rem', padding: '0.4rem 0.8rem' }
+  }, "● " + fleet.length + " Fleet Aircraft Tracked")), React.createElement("div", {
     className: "grid-2",
-    style: { gap: '1rem' }
-  }, fleetList.map(fh => React.createElement("div", {
-    key: fh.id,
+    style: { gap: '1.25rem' }
+  }, fleet.map(item => React.createElement("div", {
+    key: item.id,
     className: "glass-card",
-    style: {
-      borderColor: fh.status === 'Airworthy' ? 'rgba(16,185,129,0.4)' : fh.status === 'Conditional' ? 'rgba(245,158,11,0.4)' : 'rgba(244,63,94,0.4)'
-    }
+    style: { borderLeft: '4px solid ' + (item.status === 'Airworthy' ? 'var(--accent-emerald)' : 'var(--accent-amber)') }
   }, React.createElement("div", {
-    style: {
-      display: 'flex',
-      justify: 'space-between',
-      alignItems: 'center',
-      marginBottom: '0.75rem'
-    }
-  }, React.createElement("div", null, React.createElement("strong", {
-    style: {
-      fontSize: '1rem',
-      color: '#fff'
-    }
-  }, fh.aircraft), React.createElement("div", {
-    style: {
-      fontSize: '0.8rem',
-      color: 'var(--accent-cyan)',
-      marginTop: '0.15rem'
-    }
-  }, "Flight: " + fh.flight)), React.createElement("span", {
-    className: "badge " + (fh.status === 'Airworthy' ? 'badge-success' : fh.status === 'Conditional' ? 'badge-warning' : 'badge-danger')
-  }, fh.status)), React.createElement("div", {
-    style: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr 1fr',
-      gap: '0.5rem'
-    }
-  }, [{
-    label: 'Engine',
-    val: fh.engine
-  }, {
-    label: 'Hydraulic',
-    val: fh.hydraulic
-  }, {
-    label: 'Tyre',
-    val: fh.tyre
-  }, {
-    label: 'Brake',
-    val: fh.brake
-  }, {
-    label: 'Fuel Eff.',
-    val: fh.fuel
-  }, {
-    label: 'Next Maint.',
-    val: fh.nextMaint
-  }].map((m, i) => React.createElement("div", {
-    key: i,
-    style: {
-      padding: '0.45rem',
-      background: 'rgba(0,0,0,0.3)',
-      borderRadius: 'var(--radius-sm)',
-      fontSize: '0.78rem',
-      border: '1px solid rgba(255,255,255,0.05)'
-    }
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }
+  }, React.createElement("div", null, React.createElement("h4", {
+    style: { color: '#fff', margin: 0, fontSize: '1rem', fontWeight: 700 }
+  }, item.aircraft), React.createElement("div", {
+    style: { fontSize: '0.78rem', color: 'var(--accent-cyan)', marginTop: '0.15rem' }
+  }, item.flight)), React.createElement("span", {
+    className: "badge " + (item.status === 'Airworthy' ? 'badge-success' : 'badge-warning')
+  }, item.status)), React.createElement("div", {
+    style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem', margin: '0.85rem 0', fontSize: '0.75rem' }
   }, React.createElement("div", {
-    style: {
-      color: 'var(--text-muted)',
-      fontSize: '0.7rem'
-    }
-  }, m.label), React.createElement("div", {
-    style: {
-      fontWeight: 700,
-      color: getHealthColor(m.val),
-      marginTop: '0.1rem'
-    }
-  }, m.val)))), canModify && React.createElement("div", {
-    style: {
-      marginTop: '0.75rem',
-      display: 'flex',
-      gap: '0.5rem'
-    }
-  }, React.createElement("button", {
-    className: "btn btn-secondary",
-    style: {
-      fontSize: '0.75rem',
-      flex: 1,
-      padding: '0.3rem 0.5rem'
-    },
-    onClick: () => openEdit(fh)
-  }, "✏️ Edit Metrics"), React.createElement("button", {
-    className: "btn btn-secondary",
-    style: {
-      fontSize: '0.75rem',
-      padding: '0.3rem 0.5rem',
-      color: 'var(--accent-emerald)'
-    },
-    onClick: () => {
-      setDb(prev => ({
-        ...prev,
-        fleetHealth: fleetList.map(f => f.id === fh.id ? {
-          ...f,
-          status: 'Airworthy',
-          engine: '99%',
-          hydraulic: '98%',
-          brake: 'Optimal'
-        } : f)
-      }));
-      if (appendAuditLog) appendAuditLog('FLEET_MAINT', 'Quick maintenance logged for ' + fh.aircraft);
-      if (addToast) addToast(fh.aircraft + ' reset to optimal Airworthy!', 'success');
-    }
-  }, "⚡ Quick Service"))))), showAddModal && React.createElement("div", {
-    className: "modal-overlay",
-    onClick: e => {
-      if (e.target.className.includes('modal-overlay')) {
-        setShowAddModal(false);
-        setEditId(null);
-      }
-    }
-  }, React.createElement("div", {
-    className: "modal-card",
-    style: {
-      maxWidth: '540px'
-    }
-  }, React.createElement("div", {
-    style: {
-      display: 'flex',
-      justify: 'space-between',
-      alignItems: 'center',
-      marginBottom: '1rem',
-      borderBottom: '1px solid var(--border-color)',
-      paddingBottom: '0.5rem'
-    }
-  }, React.createElement("h3", {
-    style: {
-      margin: 0,
-      color: '#fff'
-    }
-  }, "🛠️ " + (editId ? 'Edit Aircraft Diagnostics' : 'Log New Aircraft Telemetry')), React.createElement("button", {
-    className: "btn btn-secondary",
-    style: {
-      padding: '0.2rem 0.5rem',
-      border: 'none'
-    },
-    onClick: () => {
-      setShowAddModal(false);
-      setEditId(null);
-    }
-  }, "✕")), React.createElement("form", {
-    onSubmit: handleSaveHealth,
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.85rem'
-    }
-  }, React.createElement("div", null, React.createElement("label", {
-    style: {
-      fontSize: '0.78rem',
-      color: 'var(--text-secondary)'
-    }
-  }, "Aircraft Registration & Model"), React.createElement("input", {
-    required: true,
-    className: "form-input",
-    placeholder: "e.g. Boeing 787-9 (VT-ANP)",
-    value: healthForm.aircraft,
-    onChange: e => setHealthForm({
-      ...healthForm,
-      aircraft: e.target.value
-    })
-  })), React.createElement("div", null, React.createElement("label", {
-    style: {
-      fontSize: '0.78rem',
-      color: 'var(--text-secondary)'
-    }
-  }, "Assigned Flight Number"), React.createElement("input", {
-    required: true,
-    className: "form-input",
-    placeholder: "e.g. AI-102 (DEL ✈ JFK)",
-    value: healthForm.flight,
-    onChange: e => setHealthForm({
-      ...healthForm,
-      flight: e.target.value
-    })
-  })), React.createElement("div", {
-    style: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '0.75rem'
-    }
-  }, React.createElement("div", null, React.createElement("label", {
-    style: {
-      fontSize: '0.78rem',
-      color: 'var(--text-secondary)'
-    }
-  }, "Airworthiness Status"), React.createElement("select", {
-    className: "form-input",
-    value: healthForm.status,
-    onChange: e => setHealthForm({
-      ...healthForm,
-      status: e.target.value
-    })
-  }, React.createElement("option", {
-    value: "Airworthy"
-  }, "Airworthy"), React.createElement("option", {
-    value: "Conditional"
-  }, "Conditional"), React.createElement("option", {
-    value: "Maintenance"
-  }, "Maintenance"))), React.createElement("div", null, React.createElement("label", {
-    style: {
-      fontSize: '0.78rem',
-      color: 'var(--text-secondary)'
-    }
-  }, "Engine Health Efficiency"), React.createElement("input", {
-    className: "form-input",
-    placeholder: "98%",
-    value: healthForm.engine,
-    onChange: e => setHealthForm({
-      ...healthForm,
-      engine: e.target.value
-    })
-  }))), React.createElement("div", {
-    style: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '0.75rem'
-    }
-  }, React.createElement("div", null, React.createElement("label", {
-    style: {
-      fontSize: '0.78rem',
-      color: 'var(--text-secondary)'
-    }
-  }, "Hydraulic System Pressure"), React.createElement("input", {
-    className: "form-input",
-    placeholder: "95%",
-    value: healthForm.hydraulic,
-    onChange: e => setHealthForm({
-      ...healthForm,
-      hydraulic: e.target.value
-    })
-  })), React.createElement("div", null, React.createElement("label", {
-    style: {
-      fontSize: '0.78rem',
-      color: 'var(--text-secondary)'
-    }
-  }, "Next Scheduled Inspection"), React.createElement("input", {
-    type: "date",
-    className: "form-input",
-    value: healthForm.nextMaint,
-    onChange: e => setHealthForm({
-      ...healthForm,
-      nextMaint: e.target.value
-    })
-  }))), React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: '0.5rem',
-      justify: 'flex-end',
-      marginTop: '0.5rem'
-    }
-  }, React.createElement("button", {
-    type: "button",
-    className: "btn btn-secondary",
-    onClick: () => {
-      setShowAddModal(false);
-      setEditId(null);
-    }
-  }, "Cancel"), React.createElement("button", {
-    type: "submit",
-    className: "btn btn-primary"
-  }, "💾 " + (editId ? 'Update Telemetry' : 'Save Aircraft Telemetry')))))));
+    style: { background: 'rgba(0,0,0,0.25)', padding: '0.5rem', borderRadius: '6px', textAlign: 'center' }
+  }, React.createElement("div", { style: { color: 'var(--text-muted)' } }, "Engine"), React.createElement("strong", { style: { color: 'var(--accent-emerald)', fontSize: '0.9rem' } }, item.engine)), React.createElement("div", {
+    style: { background: 'rgba(0,0,0,0.25)', padding: '0.5rem', borderRadius: '6px', textAlign: 'center' }
+  }, React.createElement("div", { style: { color: 'var(--text-muted)' } }, "Hydraulics"), React.createElement("strong", { style: { color: 'var(--accent-cyan)', fontSize: '0.9rem' } }, item.hydraulic)), React.createElement("div", {
+    style: { background: 'rgba(0,0,0,0.25)', padding: '0.5rem', borderRadius: '6px', textAlign: 'center' }
+  }, React.createElement("div", { style: { color: 'var(--text-muted)' } }, "Fuel"), React.createElement("strong", { style: { color: 'var(--accent-amber)', fontSize: '0.9rem' } }, item.fuel))), React.createElement("div", {
+    style: { display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }
+  }, React.createElement("span", null, "Brakes: ", React.createElement("strong", { style: { color: '#fff' } }, item.brake)), React.createElement("span", null, "Next Inspection: ", React.createElement("strong", { style: { color: 'var(--accent-cyan)' } }, item.nextMaint)))))));
 }
+
 
 function BaggageView({
   db,
@@ -14544,7 +14302,7 @@ function OlaCabBookingView({
   const currentDistanceKm = calculateDistanceKm(dropLocation);
   const estMins = Math.round(currentDistanceKm * 1.9 + 5);
 
-  const bookings = db.cabBookings || [];
+  const bookings = db?.cabBookings || [];
 
   // Dynamic cab category rates per KM
   const cabCategories = [
@@ -14646,128 +14404,107 @@ function OlaCabBookingView({
   };
 
   return React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1.5rem'
-    }
+    style: { display: 'flex', flexDirection: 'column', gap: '1.5rem' }
   }, React.createElement("div", {
-    style: {
-      display: 'flex',
-      justify: 'space-between',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: '0.75rem'
-    }
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }
   }, React.createElement("div", null, React.createElement("h2", {
-    style: {
-      fontWeight: 800,
-      margin: 0
-    }
+    style: { fontWeight: 800, margin: 0 }
   }, "🚕 Official Ola Airport Taxi & Cab Hub — " + aptName + " (" + aptCode + ")"), React.createElement("div", {
-    style: {
-      fontSize: '0.8rem',
-      color: 'var(--accent-cyan)',
-      marginTop: '0.2rem'
-    }
-  }, "Airport-Specific Pickup Points, Destinations & Live Per-KM Fare Calculations for " + aptCode + " (" + activeData.city + ")"))), React.createElement("div", {
+    style: { fontSize: '0.8rem', color: 'var(--accent-cyan)', marginTop: '0.2rem' }
+  }, "Airport-Specific Pickup Points, Preset Destinations & Live Per-KM Fare Calculations for " + aptCode + " (" + activeData.city + ")"))), React.createElement("div", {
     className: "grid-2",
-    style: {
-      gap: '1.5rem'
-    }
+    style: { gap: '1.5rem' }
   }, React.createElement("div", {
     className: "glass-card"
   }, React.createElement("h3", {
-    style: {
-      color: 'var(--accent-amber)',
-      marginBottom: '1rem',
-      fontSize: '1.1rem'
-    }
+    style: { color: 'var(--accent-amber)', marginBottom: '1rem', fontSize: '1.1rem' }
   }, "🚖 Book Your Ride at " + aptCode + " (" + activeData.city + ")"), React.createElement("form", {
     onSubmit: handleBookCab,
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1rem'
-    }
+    style: { display: 'flex', flexDirection: 'column', gap: '1rem' }
   }, React.createElement("div", null, React.createElement("label", {
-    style: {
-      fontSize: '0.78rem',
-      color: 'var(--text-secondary)'
-    }
+    style: { fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', display: 'block' }
   }, "Airport Pickup Point (" + aptCode + ")"), React.createElement("select", {
     className: "form-input",
     value: pickupPoint,
-    onChange: e => setPickupPoint(e.target.value)
-  }, pickupPoints.map((p, i) => React.createElement("option", { key: i, value: p }, p)))), React.createElement("div", null, React.createElement("label", {
+    onChange: e => setPickupPoint(e.target.value),
     style: {
-      fontSize: '0.78rem',
-      color: 'var(--text-secondary)'
+      background: '#0f172a',
+      color: '#ffffff',
+      border: '1px solid rgba(0, 242, 254, 0.4)',
+      borderRadius: '8px',
+      padding: '0.65rem 0.85rem',
+      fontSize: '0.88rem',
+      fontWeight: 600,
+      width: '100%',
+      outline: 'none',
+      cursor: 'pointer'
     }
-  }, "Popular Destinations in " + activeData.city + " (" + aptCode + ")"), React.createElement("select", {
+  }, pickupPoints.map((p, i) => React.createElement("option", { key: i, value: p, style: { background: '#0f172a', color: '#ffffff' } }, p)))), React.createElement("div", null, React.createElement("label", {
+    style: { fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', display: 'block' }
+  }, "Popular Preset Destinations in " + activeData.city + " (" + aptCode + ")"), React.createElement("select", {
     className: "form-input",
     value: dropLocation,
     onChange: e => setDropLocation(e.target.value),
     style: {
-      marginBottom: '0.5rem',
-      fontWeight: 600,
-      color: 'var(--accent-cyan)'
+      background: '#0f172a',
+      color: '#00f2fe',
+      border: '1px solid rgba(0, 242, 254, 0.5)',
+      borderRadius: '8px',
+      padding: '0.7rem 0.85rem',
+      fontSize: '0.9rem',
+      fontWeight: 700,
+      width: '100%',
+      outline: 'none',
+      cursor: 'pointer',
+      marginBottom: '0.5rem'
     }
   }, popularDestinations.map((d, i) => React.createElement("option", {
     key: i,
-    value: d.name
-  }, d.name + " (" + d.km + " km • ~" + d.mins + " mins)")))), React.createElement("div", null, React.createElement("label", {
-    style: {
-      fontSize: '0.78rem',
-      color: 'var(--text-secondary)'
-    }
+    value: d.name,
+    style: { background: '#0f172a', color: '#ffffff', padding: '0.5rem' }
+  }, "📍 " + d.name + " (" + d.km + " km • ~" + d.mins + " mins)")))), React.createElement("div", null, React.createElement("label", {
+    style: { fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', display: 'block' }
   }, "Or Type Custom Address in " + activeData.city), React.createElement("input", {
     className: "form-input",
     placeholder: "Type hotel, address, or landmark in " + activeData.city + "...",
     value: dropLocation,
-    onChange: e => setDropLocation(e.target.value)
+    onChange: e => setDropLocation(e.target.value),
+    style: {
+      background: 'rgba(15, 23, 42, 0.6)',
+      color: '#ffffff',
+      border: '1px solid var(--border-color)',
+      borderRadius: '8px',
+      padding: '0.65rem 0.85rem',
+      fontSize: '0.88rem',
+      width: '100%'
+    }
   })), React.createElement("div", {
     style: {
-      background: 'rgba(0, 242, 254, 0.08)',
+      background: 'rgba(0, 242, 254, 0.1)',
       padding: '0.75rem 1rem',
       borderRadius: '8px',
-      border: '1px solid rgba(0, 242, 254, 0.3)',
+      border: '1px solid rgba(0, 242, 254, 0.4)',
       display: 'flex',
       justify: 'space-between',
       alignItems: 'center',
-      fontSize: '0.82rem'
+      fontSize: '0.85rem'
     }
   }, React.createElement("span", {
-    style: {
-      color: 'var(--accent-cyan)',
-      fontWeight: 700
-    }
+    style: { color: 'var(--accent-cyan)', fontWeight: 800 }
   }, "📍 Distance from " + aptCode + ": " + currentDistanceKm + " km"), React.createElement("span", {
-    style: {
-      color: 'var(--accent-emerald)',
-      fontWeight: 700
-    }
+    style: { color: 'var(--accent-emerald)', fontWeight: 800 }
   }, "⏱️ Est. Time: " + estMins + " mins")), React.createElement("div", null, React.createElement("label", {
-    style: {
-      fontSize: '0.78rem',
-      color: 'var(--text-secondary)',
-      marginBottom: '0.5rem',
-      display: 'block'
-    }
+    style: { fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block' }
   }, "Select Cab Vehicle Category (Fares Update Live for " + aptCode + ")"), React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.5rem'
-    }
+    style: { display: 'flex', flexDirection: 'column', gap: '0.55rem' }
   }, cabCategories.map(cat => React.createElement("div", {
     key: cat.id,
     onClick: () => setSelectedCategory(cat.id),
     style: {
-      padding: '0.75rem',
+      padding: '0.8rem',
       borderRadius: '8px',
       border: '1px solid ' + (selectedCategory === cat.id ? 'var(--accent-amber)' : 'var(--border-color)'),
-      background: selectedCategory === cat.id ? 'rgba(245,158,11,0.12)' : 'rgba(0,0,0,0.25)',
+      background: selectedCategory === cat.id ? 'rgba(245,158,11,0.14)' : 'rgba(15,23,42,0.6)',
       cursor: 'pointer',
       display: 'flex',
       justify: 'space-between',
@@ -14775,79 +14512,39 @@ function OlaCabBookingView({
       transition: 'all 0.2s'
     }
   }, React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.65rem'
-    }
+    style: { display: 'flex', alignItems: 'center', gap: '0.7rem' }
   }, React.createElement("span", {
-    style: {
-      fontSize: '1.4rem'
-    }
+    style: { fontSize: '1.5rem' }
   }, cat.icon), React.createElement("div", null, React.createElement("strong", {
-    style: {
-      fontSize: '0.88rem',
-      color: '#fff'
-    }
+    style: { fontSize: '0.9rem', color: '#fff' }
   }, cat.name), React.createElement("div", {
-    style: {
-      fontSize: '0.72rem',
-      color: 'var(--text-secondary)'
-    }
+    style: { fontSize: '0.72rem', color: 'var(--text-secondary)' }
   }, cat.desc), React.createElement("div", {
-    style: {
-      fontSize: '0.65rem',
-      color: 'var(--text-muted)',
-      marginTop: '0.1rem'
-    }
+    style: { fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.1rem' }
   }, "Rate: ₹" + cat.baseRate + " Base + ₹" + cat.perKmRate + "/km"))), React.createElement("div", {
-    style: {
-      textAlign: 'right'
-    }
+    style: { textAlign: 'right' }
   }, React.createElement("div", {
-    style: {
-      fontWeight: 800,
-      color: 'var(--accent-emerald)',
-      fontSize: '1.1rem'
-    }
+    style: { fontWeight: 800, color: 'var(--accent-emerald)', fontSize: '1.15rem' }
   }, "₹" + cat.estFare), React.createElement("div", {
-    style: {
-      fontSize: '0.68rem',
-      color: 'var(--accent-cyan)'
-    }
+    style: { fontSize: '0.68rem', color: 'var(--accent-cyan)' }
   }, "ETA: " + cat.eta)))))), React.createElement("div", {
     style: {
-      background: 'rgba(245,158,11,0.08)',
+      background: 'rgba(245,158,11,0.1)',
       padding: '1rem',
       borderRadius: '8px',
-      border: '1px solid rgba(245,158,11,0.3)',
+      border: '1px solid rgba(245,158,11,0.35)',
       display: 'flex',
       justify: 'space-between',
       alignItems: 'center'
     }
   }, React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: '0.78rem',
-      color: 'var(--text-secondary)'
-    }
+    style: { fontSize: '0.78rem', color: 'var(--text-secondary)' }
   }, "Ride Fare Estimate for " + currentDistanceKm + " km at " + aptCode + ":"), React.createElement("div", {
-    style: {
-      fontSize: '1.35rem',
-      fontWeight: 800,
-      color: 'var(--accent-amber)'
-    }
+    style: { fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-amber)' }
   }, "₹" + chosenCat.estFare + " ", React.createElement("span", {
-    style: {
-      fontSize: '0.8rem',
-      fontWeight: 400,
-      color: 'var(--text-secondary)'
-    }
+    style: { fontSize: '0.8rem', fontWeight: 400, color: 'var(--text-secondary)' }
   }, "(" + chosenCat.name + ")"))), React.createElement("div", {
-    style: {
-      textAlign: 'right',
-      fontSize: '0.75rem',
-      color: 'var(--accent-cyan)'
-    }
+    style: { textAlign: 'right', fontSize: '0.75rem', color: 'var(--accent-cyan)' }
   }, "Driver ETA: ", React.createElement("strong", null, chosenCat.eta))), React.createElement("button", {
     type: "submit",
     className: "btn btn-primary",
@@ -14859,82 +14556,38 @@ function OlaCabBookingView({
       fontSize: '0.95rem'
     }
   }, "🚕 Book " + chosenCat.name + " (₹" + chosenCat.estFare + " for " + currentDistanceKm + " km) ➔"))), React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1.25rem'
-    }
+    style: { display: 'flex', flexDirection: 'column', gap: '1.25rem' }
   }, React.createElement("div", {
     className: "glass-card"
   }, React.createElement("h3", {
-    style: {
-      color: 'var(--accent-amber)',
-      marginBottom: '0.75rem'
-    }
+    style: { color: 'var(--accent-amber)', marginBottom: '0.75rem' }
   }, "🚖 Recent Cab Requests at " + aptCode + " (" + bookings.length + ")"), React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.65rem'
-    }
+    style: { display: 'flex', flexDirection: 'column', gap: '0.65rem' }
   }, bookings.map(b => React.createElement("div", {
     key: b.id,
     style: {
       padding: '0.75rem',
       borderRadius: '8px',
-      background: 'rgba(0,0,0,0.2)',
+      background: 'rgba(0,0,0,0.25)',
       border: '1px solid var(--border-color)'
     }
   }, React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      justify: 'space-between'
-    }
+    style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' }
   }, React.createElement("strong", {
-    style: {
-      color: 'var(--accent-cyan)',
-      fontSize: '0.85rem'
-    }
+    style: { color: 'var(--accent-cyan)', fontSize: '0.85rem' }
   }, b.passengerName), React.createElement("span", {
     className: "badge badge-success",
-    style: {
-      fontSize: '0.62rem'
-    }
+    style: { fontSize: '0.62rem' }
   }, b.cabCategory)), React.createElement("div", {
-    style: {
-      fontSize: '0.75rem',
-      color: 'var(--text-secondary)',
-      marginTop: '0.2rem'
-    }
+    style: { fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }
   }, "Pickup: ", React.createElement("strong", null, b.pickupPoint)), React.createElement("div", {
-    style: {
-      fontSize: '0.75rem',
-      color: 'var(--text-secondary)',
-      marginTop: '0.1rem'
-    }
+    style: { fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }
   }, "Drop: ", React.createElement("strong", null, b.dropLocation + " (" + (b.distanceKm || '16.8') + " km)")), React.createElement("div", {
-    style: {
-      fontSize: '0.78rem',
-      color: 'var(--accent-emerald)',
-      fontWeight: 700,
-      marginTop: '0.3rem',
-      display: 'flex',
-      justify: 'space-between'
-    }
+    style: { fontSize: '0.78rem', color: 'var(--accent-emerald)', fontWeight: 700, marginTop: '0.3rem', display: 'flex', justifyContent: 'space-between' }
   }, React.createElement("span", null, "Est. Fare: ₹" + b.fare), React.createElement("span", {
-    style: {
-      color: 'var(--text-muted)',
-      fontSize: '0.7rem',
-      fontWeight: 400
-    }
+    style: { color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 400 }
   }, b.timestamp)))), bookings.length === 0 && React.createElement("div", {
-    style: {
-      textAlign: 'center',
-      padding: '1.5rem',
-      color: 'var(--text-muted)',
-      fontSize: '0.85rem'
-    }
+    style: { textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }
   }, "No cab requests logged yet."))))));
 }
 
