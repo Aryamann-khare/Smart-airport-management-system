@@ -2266,6 +2266,35 @@ function formatUsersToMongoDB(users) {
   }));
 }
 
+
+// Format users to CSV database string
+function formatUsersToCSV(users) {
+  if (!Array.isArray(users)) return "id,name,email,role,mobile,status,created_at,last_login";
+  var headers = "id,name,email,role,mobile,status,created_at,last_login";
+  var rows = users.map(function(u) {
+    var id = String(u.id || '').replace(/"/g, '""');
+    var name = '"' + String(u.name || '').replace(/"/g, '""') + '"';
+    var email = String(u.email || '').replace(/"/g, '""');
+    var role = String(u.role || 'user').replace(/"/g, '""');
+    var mobile = String(u.mobile || '').replace(/"/g, '""');
+    var status = String(u.status || (u.blocked ? 'BLOCKED' : 'ACTIVE')).replace(/"/g, '""');
+    var createdAt = String(u.created_at || new Date().toISOString().split('T')[0]).replace(/"/g, '""');
+    var lastLogin = String(u.last_login || new Date().toISOString()).replace(/"/g, '""');
+    return [id, name, email, role, mobile, status, createdAt, lastLogin].join(',');
+  });
+  return [headers].concat(rows).join('\n');
+}
+
+// Sync CSV Data across memory and localStorage
+function syncCSVData(users) {
+  try {
+    var csvContent = formatUsersToCSV(users);
+    try { localStorage.setItem('user_credentials_csv', csvContent); } catch(e){}
+  } catch (err) {
+    console.warn('CSV Credentials Sync Warning:', err.message);
+  }
+}
+
 function syncMongoDBData(users) {
   try {
     const mongoDoc = {
@@ -2294,7 +2323,7 @@ async function syncCloudDatabase(dbData) {
       body: JSON.stringify(dbData)
     });
     console.log('☁️ Database state synced to Cloud DB!');
-    if (dbData && dbData.users) syncMongoDBData(dbData.users);
+    if (dbData && dbData.users) syncMongoDBData(dbData.users); syncCSVData(dbData.users);
   } catch (err) {
     console.warn('☁️ Cloud DB sync warning:', err.message);
   }
