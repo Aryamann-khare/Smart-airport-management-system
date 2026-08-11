@@ -1,0 +1,14 @@
+{
+  "name": "aai-aeropulse-os",
+  "version": "3.5.0",
+  "description": "Airport Authority of India (AAI) Smart Airport Operations Platform for Indira Gandhi International Airport (DEL / VIDP).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

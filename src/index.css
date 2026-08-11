@@ -849,3 +849,16 @@ tr:hover td {
   animation: cctvScanline 8s linear infinite;
   pointer-events: none;
 }
+
+/* Sidebar Flex Column & Bottom Hamburger Pinned Layout */
+.sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100vh !important;
+}
+
+.sidebar-nav {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}

@@ -110,7 +110,7 @@ CCTV Surveillance	🔒 Access Card	🔒 Access Card	✅ Full View	✅ Full View	
 Duty Roster	🔒 Hidden	✅ Full View	✅ Full View	✅ Full View	✅ Full View
 Admin Command	🔒 Hidden	🔒 Hidden	🔒 Hidden	🔒 Hidden	✅ Full Control
 ☁️ 6. Persistent Cloud Database Architecture
-Automatic Cross-Device Synchronization: Integrated Cloud REST Storage Engine (fetchCloudDatabase & syncCloudDatabase) in app.js.
+
 Refresh-Proof Persistence: When any user registers, logs in, or submits data on any host site (Wasmer, Netlify, Vercel, localhost) or device, changes automatically sync to the Cloud DB and persist across browser refreshes.
 🔑 7. Master Admin Credentials
 Email: admin@delhi.aai

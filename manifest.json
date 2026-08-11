@@ -1,21 +1,8 @@
 {
-  "manifest_version": 3,
   "name": "AAI AeroPulse OS - Smart Airport Platform",
   "short_name": "AeroPulse OS",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#07090e",
-  "theme_color": "#00f2fe",
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "assets/couponCollection.js-BO2Uvu5T.js",
-        "assets/*",
-        "*"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    }
-  ]
+  "theme_color": "#00f2fe"
 }

@@ -1633,15 +1633,7 @@ function AeroSkyAiBot({
   isAdmin
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [apiKey, setApiKey] = useState(() => {
-    try {
-      return localStorage.getItem('AEROSKY_GEMINI_KEY') || '';
-    } catch (e) {
-      return '';
-    }
-  });
-  const [tempKeyInput, setTempKeyInput] = useState('');
+  const GEMINI_PERMANENT_KEY = 'AIzaSyBO-J7oWdntnLA5-eBc8O4RblnVkWXNEos';
   const [inputMsg, setInputMsg] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
@@ -1650,7 +1642,7 @@ function AeroSkyAiBot({
   const [messages, setMessages] = useState([{
     id: 'welcome-1',
     sender: 'bot',
-    text: `👋 Namaste! I'm **AeroSky ✈️✨**, your cute 3D AI Flight & Airport Buddy for **${aptName} (${aptCode})**!\n\nI can answer **ANY question in the world**! Ask me about live flights, parking charges, Delhi Metro, Ola cabs, math, science, travel tips, or general trivia!`,
+    text: `👋 Namaste! I'm **AeroSky ✈️✨**, your cute 3D AI Flight & Airport Buddy for **${aptName} (${aptCode})**!\n\nI am powered by **Google Gemini 1.5 Pro AI**! Ask me about live flights, parking charges, Delhi Metro, Ola cabs, math, science, travel tips, or general trivia!`,
     timestamp: new Date().toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit'
@@ -1680,19 +1672,7 @@ function AeroSkyAiBot({
   useEffect(() => {
     if (isOpen) scrollToBottom();
   }, [messages, isOpen, isTyping]);
-  const saveApiKey = e => {
-    e.preventDefault();
-    const keyClean = tempKeyInput.trim();
-    setApiKey(keyClean);
-    try {
-      if (keyClean) {
-        localStorage.setItem('AEROSKY_GEMINI_KEY', keyClean);
-      } else {
-        localStorage.removeItem('AEROSKY_GEMINI_KEY');
-      }
-    } catch (err) {}
-    setShowKeyModal(false);
-  };
+
   const handleSendMessage = async textToSend => {
     const query = (textToSend || inputMsg).trim();
     if (!query) return;
@@ -1708,39 +1688,38 @@ function AeroSkyAiBot({
     setMessages(prev => [...prev, userMsg]);
     if (!textToSend) setInputMsg('');
     setIsTyping(true);
-    if (apiKey) {
-      try {
-        const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `You are AeroSky ✈️✨, a cute airport AI buddy for Indira Gandhi International Airport (DEL). Answer this user question accurately, helpfully and politely: ${query}`
-              }]
+
+    try {
+      const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_PERMANENT_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `You are AeroSky ✈️✨, an intelligent airport AI assistant for ${aptName} (${aptCode}). Answer this user question accurately, helpfully and politely: ${query}`
             }]
+          }]
+        })
+      });
+      const data = await apiRes.json();
+      const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      setIsTyping(false);
+      if (replyText) {
+        setMessages(prev => [...prev, {
+          id: `bot-${Date.now()}`,
+          sender: 'bot',
+          text: `✨ **AeroSky (Gemini AI)**:\n\n${replyText}`,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
           })
-        });
-        const data = await apiRes.json();
-        const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        setIsTyping(false);
-        if (replyText) {
-          setMessages(prev => [...prev, {
-            id: `bot-${Date.now()}`,
-            sender: 'bot',
-            text: `✨ **AeroSky (Gemini AI)**:\n\n${replyText}`,
-            timestamp: new Date().toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit'
-            })
-          }]);
-          return;
-        }
-      } catch (err) {
-        console.warn("API Call Error, falling back to Universal Engine", err);
+        }]);
+        return;
       }
+    } catch (err) {
+      console.warn("API Call Error, falling back to Universal Engine", err);
     }
     setTimeout(() => {
       const botResponse = generateUniversalAiAnswer(query, db, setActiveTab, aptName, aptCode);
@@ -1858,81 +1837,13 @@ function AeroSkyAiBot({
     return {
       id: `bot-${Date.now()}`,
       sender: 'bot',
-      text: `✈️✨ **AeroSky Universal AI Assistant**:\n\nI can answer **ANY question in the world**!\n\n• Ask about flights, gates, parking charges, or Ola cabs.\n• Ask general knowledge questions (math, science, geography, trivia).\n\n*(Optional: Click the ⚙️ Key button above to enter a Google Gemini API Key for live AI reasoning!)*`,
+      text: `✈️✨ **AeroSky Universal AI Assistant**:\n\nI can answer **ANY question in the world**!\n\n• Ask about flights, gates, parking charges, or Ola cabs.\n• Ask general knowledge questions (math, science, geography, trivia).`,
       timestamp: nowTime
     };
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "ai-bot-floating-container"
-  }, showKeyModal && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0,0,0,0.7)',
-      backdropFilter: 'blur(8px)',
-      zIndex: 10000,
-      display: 'flex',
-      alignItems: 'center',
-      justify: 'center',
-      padding: '1rem'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: '#0f172a',
-      border: '1px solid rgba(0, 242, 254, 0.4)',
-      borderRadius: '16px',
-      padding: '1.5rem',
-      maxWidth: '420px',
-      width: '100%',
-      color: '#fff',
-      boxShadow: '0 20px 40px rgba(0,0,0,0.8)'
-    }
-  }, /*#__PURE__*/React.createElement("h3", {
-    style: {
-      color: '#00f2fe',
-      margin: '0 0 0.5rem 0',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem'
-    }
-  }, "\u2699\uFE0F Google Gemini API Key"), /*#__PURE__*/React.createElement("p", {
-    style: {
-      fontSize: '0.8rem',
-      color: '#94a3b8',
-      lineHeight: 1.5,
-      marginBottom: '1rem'
-    }
-  }, "Optional: Enter your Google Gemini API Key to enable live LLM intelligence for any question in the world!"), /*#__PURE__*/React.createElement("form", {
-    onSubmit: saveApiKey
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "password",
-    className: "form-input",
-    placeholder: "AIzaSy...",
-    value: tempKeyInput,
-    onChange: e => setTempKeyInput(e.target.value),
-    style: {
-      width: '100%',
-      padding: '0.6rem',
-      marginBottom: '1rem',
-      borderRadius: '8px'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: '0.5rem',
-      justifyContent: 'flex-end'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    className: "btn btn-secondary",
-    onClick: () => setShowKeyModal(false)
-  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
-    type: "submit",
-    className: "btn btn-primary"
-  }, "\uD83D\uDCBE Save Key"))))), isOpen && /*#__PURE__*/React.createElement("div", {
+  }, isOpen && /*#__PURE__*/React.createElement("div", {
     className: "ai-bot-drawer"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1988,20 +1899,7 @@ function AeroSkyAiBot({
       display: 'flex',
       gap: '0.3rem'
     }
-  }, isAdmin && /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-secondary",
-    style: {
-      padding: '0.2rem 0.5rem',
-      fontSize: '0.7rem',
-      color: 'var(--accent-cyan)',
-      borderColor: 'rgba(255,255,255,0.2)'
-    },
-    onClick: () => {
-      setTempKeyInput(apiKey);
-      setShowKeyModal(true);
-    },
-    title: "API Key Configuration (Admin Only)"
-  }, "\u2699\uFE0F Key"), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("button", {
     className: "btn btn-secondary",
     style: {
       padding: '0.2rem 0.5rem',
@@ -2219,113 +2117,38 @@ function AeroSkyAiBot({
 }
 
 // -------------------------------------------------------------
-// ☁️ GLOBAL PERSISTENT CLOUD DATABASE SYNC ENGINE
 // -------------------------------------------------------------
-const CLOUD_DB_KEY = 'aeropulse_cloud_db_v2';
-const CLOUD_ENDPOINT = 'https://api.jsonbin.io/v3/b';
+// 📁 LOCAL DISK DATABASE SYNC ENGINE (LocalStorage + CSV & JSON)
+// -------------------------------------------------------------
 
-// Fast, reliable CORS Cloud REST Storage for cross-device persistence
 async function fetchCloudDatabase() {
   try {
-    const res = await fetch('https://kvdb.io/4y928n7zN1k5T2m9/' + CLOUD_DB_KEY);
-    
-    if (res.status === 404) {
-      console.log('☁️ Cloud DB not found. Initializing new database...');
-      // Return a default structure instead of null to prevent downstream errors
-      return { users: [] }; 
-    }
-
+    const res = await fetch('/api/db');
     if (res.ok) {
       const data = await res.json();
-      if (data && typeof data === 'object' && Array.isArray(data.users)) {
-        console.log('☁️ Loaded database state from Cloud DB!');
+      if (data && data.success && Array.isArray(data.users) && data.users.length > 0) {
+        console.log('📁 Loaded database state from Local Disk Engine!');
         return data;
       }
     }
-  } catch (err) {
-    console.warn('☁️ Cloud DB load warning:', err.message);
-  }
+  } catch (err) {}
   return null;
 }
-
-// Real-Time MongoDB Credentials File Sync Engine
-function formatUsersToMongoDB(users) {
-  if (!Array.isArray(users)) return [];
-  return users.map((u, idx) => ({
-    _id: { "$oid": u.mongoOid || ('66b67e8a1f2e3d4c5b6a7b' + (idx + 1).toString().padStart(2, '0')) },
-    userId: u.id || ('USR-' + (idx + 1)),
-    name: u.name || 'User',
-    email: u.email,
-    password: u.password,
-    role: u.role || 'Passenger',
-    designation: u.designation || 'Traveler',
-    employeeId: u.employeeId || 'N/A',
-    status: u.status || 'APPROVED',
-    createdAt: u.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }));
-}
-
-
-// Format users to CSV database string
-function formatUsersToCSV(users) {
-  if (!Array.isArray(users)) return "id,name,email,role,mobile,status,created_at,last_login";
-  var headers = "id,name,email,role,mobile,status,created_at,last_login";
-  var rows = users.map(function(u) {
-    var id = String(u.id || '').replace(/"/g, '""');
-    var name = '"' + String(u.name || '').replace(/"/g, '""') + '"';
-    var email = String(u.email || '').replace(/"/g, '""');
-    var role = String(u.role || 'user').replace(/"/g, '""');
-    var mobile = String(u.mobile || '').replace(/"/g, '""');
-    var status = String(u.status || (u.blocked ? 'BLOCKED' : 'ACTIVE')).replace(/"/g, '""');
-    var createdAt = String(u.created_at || new Date().toISOString().split('T')[0]).replace(/"/g, '""');
-    var lastLogin = String(u.last_login || new Date().toISOString()).replace(/"/g, '""');
-    return [id, name, email, role, mobile, status, createdAt, lastLogin].join(',');
-  });
-  return [headers].concat(rows).join('\n');
-}
-
-// Sync CSV Data across memory and localStorage
-function syncCSVData(users) {
-  try {
-    var csvContent = formatUsersToCSV(users);
-    try { localStorage.setItem('user_credentials_csv', csvContent); } catch(e){}
-  } catch (err) {
-    console.warn('CSV Credentials Sync Warning:', err.message);
-  }
-}
-
-function syncMongoDBData(users) {
-  try {
-    const mongoDoc = {
-      _meta: {
-        dbName: "aeropulse_db",
-        collection: "credentials",
-        engine: "MongoDB JSON Cloud Sync Engine v2.0",
-        totalUsers: users.length,
-        lastSynced: new Date().toISOString()
-      },
-      credentials: formatUsersToMongoDB(users)
-    };
-    try { localStorage.setItem('mongodb_credentials_db', JSON.stringify(mongoDoc)); } catch(e){}
-  } catch (err) {
-    console.warn('MongoDB Sync Warning:', err.message);
-  }
-}
-
 
 async function syncCloudDatabase(dbData) {
   if (!dbData) return;
   try {
-    await fetch('https://kvdb.io/4y928n7zN1k5T2m9/' + CLOUD_DB_KEY, {
+    await fetch('/api/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dbData)
+      body: JSON.stringify({ payload: dbData })
     });
-    console.log('☁️ Database state synced to Cloud DB!');
-    if (dbData && dbData.users) syncMongoDBData(dbData.users); syncCSVData(dbData.users);
-  } catch (err) {
-    console.warn('☁️ Cloud DB sync warning:', err.message);
+    console.log('💾 Database state synced to Local Disk Engine!');
+  } catch(e) {}
+
+  if (dbData && dbData.users) {
+    syncMongoDBData(dbData.users);
+    syncCSVData(dbData.users);
   }
 }
 
@@ -2333,14 +2156,45 @@ async function syncCloudDatabase(dbData) {
 function App() {
   const [db, setDb] = useState(loadDB());
   const [lang, setLang] = useState('en');
-  const [activeAirport, setActiveAirport] = useState(AAI_AIRPORTS[0]); // default Delhi
+  const [activeAirport, setActiveAirport] = useState(() => {
+    try {
+      const saved = localStorage.getItem('AEROSKY_ACTIVE_AIRPORT');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const match = AAI_AIRPORTS.find(a => a.code === parsed.code);
+        if (match) return match;
+      }
+    } catch(e) {}
+    return AAI_AIRPORTS[0];
+  });
   const [isGpsDetected, setIsGpsDetected] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [toasts, setToasts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('AEROSKY_CURRENT_USER');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch(e) { return null; }
+  });
+
+  useEffect(() => {
+    try {
+      if (activeAirport) localStorage.setItem('AEROSKY_ACTIVE_AIRPORT', JSON.stringify(activeAirport));
+    } catch(e) {}
+  }, [activeAirport]);
+
+  useEffect(() => {
+    try {
+      if (currentUser) {
+        localStorage.setItem('AEROSKY_CURRENT_USER', JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem('AEROSKY_CURRENT_USER');
+      }
+    } catch(e) {}
+  }, [currentUser]);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
@@ -2415,7 +2269,7 @@ function App() {
             wheelchairRequests: (Array.isArray(cloudDb.wheelchairRequests) && cloudDb.wheelchairRequests.length > 0) ? cloudDb.wheelchairRequests : prev.wheelchairRequests,
             emergencyAlerts: (Array.isArray(cloudDb.emergencyAlerts) && cloudDb.emergencyAlerts.length > 0) ? cloudDb.emergencyAlerts : prev.emergencyAlerts
           };
-          try { localStorage.setItem('delhi_airport_db', JSON.stringify(merged)); } catch(e){}
+          try { localStorage.setItem(DB_KEY, JSON.stringify(merged)); } catch(e){}
           return merged;
         });
       }
@@ -2424,7 +2278,7 @@ function App() {
 
   // Sync to Cloud DB on db state changes
   useEffect(() => {
-    syncCloudDatabase(db); try { localStorage.setItem('delhi_airport_db', JSON.stringify(db)); } catch(e){}
+    syncCloudDatabase(db); try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch(e){}
   }, [db.users, db.cabBookings, db.wheelchairRequests, db.emergencyAlerts]);
   const addToast = (msg, type = 'info') => {
     const id = Date.now();
@@ -2964,46 +2818,7 @@ function App() {
     label: t('wheelchair')
   }];
 
-    if (canAccessDutyRoster) {
-    sidebarItems.push({
-      key: 'dutyRoster',
-      icon: /*#__PURE__*/React.createElement("svg", {
-        width: "20",
-        height: "20",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: "2"
-      }, /*#__PURE__*/React.createElement("rect", {
-        x: "3",
-        y: "4",
-        width: "18",
-        height: "18",
-        rx: "2",
-        ry: "2"
-      }), /*#__PURE__*/React.createElement("line", {
-        x1: "16",
-        y1: "2",
-        x2: "16",
-        y2: "6"
-      }), /*#__PURE__*/React.createElement("line", {
-        x1: "8",
-        y1: "2",
-        x2: "8",
-        y2: "6"
-      }), /*#__PURE__*/React.createElement("line", {
-        x1: "3",
-        y1: "10",
-        x2: "21",
-        y2: "10"
-      }), /*#__PURE__*/React.createElement("path", {
-        d: "M9 16l2 2 4-4"
-      })),
-      label: t('dutyRoster')
-    });
-  }
-
-if (canAccessFleetHealth) {
+  if (canAccessFleetHealth) {
     sidebarItems.push({
       key: 'fleetHealth',
       icon: /*#__PURE__*/React.createElement("svg", {
@@ -3093,6 +2908,72 @@ if (canAccessFleetHealth) {
       label: t('cctv')
     });
   }
+
+  if (canAccessDutyRoster) {
+    sidebarItems.push({
+      key: 'dutyRoster',
+      icon: /*#__PURE__*/React.createElement("svg", {
+        width: "20",
+        height: "20",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "2"
+      }, /*#__PURE__*/React.createElement("rect", {
+        x: "3",
+        y: "4",
+        width: "18",
+        height: "18",
+        rx: "2",
+        ry: "2"
+      }), /*#__PURE__*/React.createElement("line", {
+        x1: "16",
+        y1: "2",
+        x2: "16",
+        y2: "6"
+      }), /*#__PURE__*/React.createElement("line", {
+        x1: "8",
+        y1: "2",
+        x2: "8",
+        y2: "6"
+      }), /*#__PURE__*/React.createElement("line", {
+        x1: "3",
+        y1: "10",
+        x2: "21",
+        y2: "10"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M9 16l2 2 4-4"
+      })),
+      label: t('dutyRoster')
+    });
+  }
+
+  sidebarItems.push({
+    key: 'reportIssue',
+    icon: /*#__PURE__*/React.createElement("svg", {
+      width: "20",
+      height: "20",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+    }), /*#__PURE__*/React.createElement("polyline", {
+      points: "14 2 14 8 20 8"
+    }), /*#__PURE__*/React.createElement("line", {
+      x1: "12",
+      y1: "18",
+      x2: "12",
+      y2: "12"
+    }), /*#__PURE__*/React.createElement("line", {
+      x1: "12",
+      y1: "9",
+      x2: "12.01",
+      y2: "9"
+    })),
+    label: "Report Issue / Ticket"
+  });
 
   if (isAdmin) {
     sidebarItems.push({
@@ -3286,27 +3167,45 @@ if (canAccessFleetHealth) {
     y2: "12"
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: '0.75rem 1rem',
+      padding: '0.85rem 0.75rem',
       borderTop: '1px solid var(--border-color)',
       display: 'flex',
-      justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'
+      alignItems: 'center',
+      justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+      background: 'rgba(0,0,0,0.2)'
     }
   }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
     className: "btn btn-secondary",
     onClick: () => setIsSidebarCollapsed(!isSidebarCollapsed),
     style: {
-      padding: '0.5rem',
-      background: 'transparent',
-      border: 'none'
+      width: isSidebarCollapsed ? '42px' : '100%',
+      height: '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '0.65rem',
+      padding: '0 0.75rem',
+      background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.12), rgba(79, 172, 254, 0.12))',
+      border: '1px solid rgba(0, 242, 254, 0.4)',
+      color: 'var(--brand-cyan)',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontWeight: 700,
+      fontSize: '0.82rem',
+      boxShadow: '0 0 12px rgba(0, 242, 254, 0.15)',
+      whiteSpace: 'nowrap'
     },
-    title: isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"
+    title: isSidebarCollapsed ? "Expand Navigation Sidebar" : "Collapse Navigation Sidebar"
   }, /*#__PURE__*/React.createElement("svg", {
     width: "20",
     height: "20",
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",
-    strokeWidth: "2"
+    strokeWidth: "2.5",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("line", {
     x1: "3",
     y1: "12",
@@ -3322,30 +3221,27 @@ if (canAccessFleetHealth) {
     y1: "18",
     x2: "21",
     y2: "18"
-  }))))), /*#__PURE__*/React.createElement("div", {
+  })), !isSidebarCollapsed && /*#__PURE__*/React.createElement("span", null, "☰ Collapse Sidebar")))), /*#__PURE__*/React.createElement("div", {
     className: "main-wrapper"
   }, /*#__PURE__*/React.createElement("header", {
     className: "topbar"
   }, /*#__PURE__*/React.createElement("div", {
+    className: "topbar-actions",
     style: {
-      flex: 1,
-      maxWidth: '320px'
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.75rem',
+      flexWrap: 'wrap',
+      flex: 1
     }
   }, /*#__PURE__*/React.createElement("input", {
     type: "text",
     className: "form-input",
     placeholder: t('searchPlaceholder'),
     value: searchQuery,
-    onChange: e => setSearchQuery(e.target.value)
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "topbar-actions",
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.75rem',
-      flexWrap: 'wrap'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
+    onChange: e => setSearchQuery(e.target.value),
+    style: { flex: '0 1 220px', minWidth: '130px', maxWidth: '280px' }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -3356,7 +3252,7 @@ if (canAccessFleetHealth) {
       border: '1px solid rgba(0,242,254,0.3)',
       fontSize: '0.78rem'
     }
-  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCCD"), /*#__PURE__*/React.createElement("select", {
+  }, /*#__PURE__*/React.createElement("span", null, "📍"), /*#__PURE__*/React.createElement("select", {
     value: activeAirport.code,
     onChange: e => {
       const selected = AAI_AIRPORTS.find(a => a.code === e.target.value);
@@ -3398,10 +3294,31 @@ if (canAccessFleetHealth) {
     },
     title: "Re-detect Device Location via GPS",
     onClick: detectDeviceLocation
-  }, "\uD83D\uDEF0\uFE0F")), /*#__PURE__*/React.createElement("button", {
+  }, "🛰️")), /*#__PURE__*/React.createElement("button", {
+    type: "button",
     className: "btn btn-secondary",
+    style: { cursor: 'pointer', whiteSpace: 'nowrap' },
     onClick: () => setShowContactModal(true)
-  }, t('support')), /*#__PURE__*/React.createElement("select", {
+  }, t('support')), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.4rem',
+      background: 'rgba(0,242,254,0.06)',
+      padding: '0.3rem 0.75rem',
+      borderRadius: '20px',
+      border: '1px solid rgba(0,242,254,0.2)',
+      fontSize: '0.75rem',
+      color: 'var(--brand-cyan)',
+      fontWeight: 600,
+      whiteSpace: 'nowrap'
+    }
+  },
+    /*#__PURE__*/React.createElement("span", null, "🕐"),
+    /*#__PURE__*/React.createElement("span", null, new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })),
+    /*#__PURE__*/React.createElement("span", { style: { color: 'var(--text-muted)' } }, "|"),
+    /*#__PURE__*/React.createElement("span", null, currentTime)
+  ), /*#__PURE__*/React.createElement("select", {
     className: "form-control",
     value: lang,
     onChange: e => setLang(e.target.value),
@@ -3619,6 +3536,15 @@ if (canAccessFleetHealth) {
       canManageWheelchair: canManageWheelchair,
     db: db,
     setDb: setDb,
+    isAdmin: isAdmin,
+    isStaff: isStaffOrAdmin,
+    addToast: addToast,
+    appendAuditLog: appendAuditLog,
+    activeAirport: activeAirport
+  }), activeTab === 'reportIssue' && /*#__PURE__*/React.createElement(ReportIssueView, {
+    db: db,
+    setDb: setDb,
+    currentUser: currentUser,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     addToast: addToast,
@@ -4513,55 +4439,67 @@ function DashboardView({
   const aptCode = activeAirport?.code || 'DEL';
   const aptName = activeAirport?.name || 'Indira Gandhi International Airport';
   const aptIcao = activeAirport?.icao || 'VIDP';
+
+  const airportKpiPreset = {
+    DEL: { activeFlights: 142, passengersToday: 42387, bagsProcessed: 39241, activeAlerts: 2, gatesOccupied: "12/24", onTimePerf: "94.2%", securityCleared: 41890, weatherStatus: "Good (Vis 2500m)", systemHealth: "99.8%" },
+    BOM: { activeFlights: 118, passengersToday: 38920, bagsProcessed: 35110, activeAlerts: 1, gatesOccupied: "14/20", onTimePerf: "91.8%", securityCleared: 37400, weatherStatus: "Clear (Vis 3000m)", systemHealth: "99.5%" },
+    BLR: { activeFlights: 96, passengersToday: 31450, bagsProcessed: 28900, activeAlerts: 0, gatesOccupied: "9/16", onTimePerf: "95.6%", securityCleared: 30800, weatherStatus: "Pleasant 24°C", systemHealth: "99.9%" },
+    MAA: { activeFlights: 74, passengersToday: 24800, bagsProcessed: 22100, activeAlerts: 1, gatesOccupied: "8/14", onTimePerf: "89.4%", securityCleared: 24100, weatherStatus: "Humid 31°C", systemHealth: "99.2%" },
+    CCU: { activeFlights: 62, passengersToday: 19500, bagsProcessed: 17800, activeAlerts: 0, gatesOccupied: "6/12", onTimePerf: "92.1%", securityCleared: 19100, weatherStatus: "Light Rain 27°C", systemHealth: "99.6%" },
+    HYD: { activeFlights: 88, passengersToday: 28400, bagsProcessed: 25600, activeAlerts: 0, gatesOccupied: "10/18", onTimePerf: "96.2%", securityCleared: 27900, weatherStatus: "Sunny 29°C", systemHealth: "99.7%" },
+    AMD: { activeFlights: 48, passengersToday: 15200, bagsProcessed: 13900, activeAlerts: 0, gatesOccupied: "5/10", onTimePerf: "93.8%", securityCleared: 14800, weatherStatus: "Warm 33°C", systemHealth: "99.4%" }
+  };
+  const activeMetrics = airportKpiPreset[aptCode] || airportKpiPreset.DEL;
+
   const kpis = [{
     label: safeT('activeFlights'),
-    val: db.metrics.activeFlights,
+    val: activeMetrics.activeFlights,
     icon: "✈️",
     color: "var(--accent-cyan)",
     tab: "flights"
   }, {
     label: safeT('passengersToday'),
-    val: db.metrics.passengersToday.toLocaleString(),
+    val: activeMetrics.passengersToday.toLocaleString(),
     icon: "👥",
     color: "var(--accent-emerald)",
     tab: "flights"
   }, {
     label: safeT('bagsProcessed'),
-    val: db.metrics.bagsProcessed.toLocaleString(),
+    val: activeMetrics.bagsProcessed.toLocaleString(),
     icon: "🛄",
     color: "var(--accent-blue)",
     tab: "baggage"
   }, {
     label: safeT('activeAlerts'),
-    val: (db?.emergencies || SEED.emergencies || []).filter(e => e.status === 'ACTIVE').length,
+    val: activeMetrics.activeAlerts,
     icon: "🚨",
     color: "var(--accent-rose)",
     tab: "emergency"
   }, {
     label: safeT('gatesOccupied'),
-    val: `${db.gates.filter(g => g.status === 'Occupied').length}/${db.gates.length}`,
+    val: activeMetrics.gatesOccupied,
     icon: "🚪",
     color: "var(--accent-purple)",
     tab: "gates"
   }, {
     label: safeT('onTimePerf'),
-    val: db.metrics.onTimePerf,
+    val: activeMetrics.onTimePerf,
     icon: "⏱️",
     color: "var(--accent-amber)",
     tab: "flights"
   }, {
     label: safeT('securityCleared'),
-    val: db.metrics.securityCleared.toLocaleString(),
+    val: activeMetrics.securityCleared.toLocaleString(),
     icon: "🛡️",
     color: "var(--accent-emerald)"
   }, {
     label: safeT('weather'),
-    val: db.metrics.weatherStatus,
+    val: activeMetrics.weatherStatus,
     icon: "🌤️",
     color: "var(--accent-blue)"
   }, {
     label: safeT('systemHealth'),
-    val: db.metrics.systemHealth,
+    val: activeMetrics.systemHealth,
     icon: "💚",
     color: "var(--accent-emerald)"
   }];
@@ -9559,7 +9497,7 @@ function LostFoundView(props) {
     var newLostFoundList = [newItem].concat(items);
     setDb(function(prev) {
       var nextDb = Object.assign({}, prev, { lostFoundItems: newLostFoundList });
-      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(err){}
       return nextDb;
     });
 
@@ -9604,6 +9542,8 @@ function LostFoundView(props) {
       claimantContact: appealForm.claimantContact,
       flightNo: appealForm.flightNo,
       proofDetails: appealForm.proofDetails,
+      mediaUrl: appealForm.mediaUrl || '',
+      mediaType: appealForm.mediaType || '',
       status: 'PENDING_VERIFICATION',
       timestamp: new Date().toLocaleTimeString()
     };
@@ -9623,7 +9563,7 @@ function LostFoundView(props) {
         lostFoundClaims: newClaimsList,
         lostFoundItems: updatedItems
       });
-      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(err){}
       return nextDb;
     });
 
@@ -9642,7 +9582,7 @@ function LostFoundView(props) {
     });
     setDb(function(prev) {
       var nextDb = Object.assign({}, prev, { lostFoundItems: updated });
-      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(err){}
       return nextDb;
     });
     if (appendAuditLog) appendAuditLog('LOST_FOUND_APPROVED', 'Approved item ' + itemTitle + ' -> ' + nextStatus);
@@ -9657,7 +9597,7 @@ function LostFoundView(props) {
     });
     setDb(function(prev) {
       var nextDb = Object.assign({}, prev, { lostFoundItems: updated });
-      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(err){}
       return nextDb;
     });
     if (appendAuditLog) appendAuditLog('LOST_FOUND_REJECTED', 'Rejected review for ' + itemTitle);
@@ -9670,7 +9610,7 @@ function LostFoundView(props) {
     var updatedItems = items.map(function(i) { return i.id === itemId ? Object.assign({}, i, { status: 'CLAIMED', claimPending: false }) : i; });
     setDb(function(prev) {
       var nextDb = Object.assign({}, prev, { lostFoundClaims: updatedClaims, lostFoundItems: updatedItems });
-      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(err){}
       return nextDb;
     });
     if (appendAuditLog) appendAuditLog('CLAIM_APPEAL_APPROVED', 'Verified & approved claim for ' + itemTitle);
@@ -9681,10 +9621,23 @@ function LostFoundView(props) {
     var updatedClaims = claimsList.map(function(c) { return c.id === claimId ? Object.assign({}, c, { status: 'DISMISSED' }) : c; });
     setDb(function(prev) {
       var nextDb = Object.assign({}, prev, { lostFoundClaims: updatedClaims });
-      try { localStorage.setItem('delhi_airport_db', JSON.stringify(nextDb)); } catch(err){}
+      try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(err){}
       return nextDb;
     });
     if (addToast) addToast('Dismissed claim appeal', 'info');
+  };
+
+  // Admin Delete Claimed Item
+  var handleDeleteClaimedItem = function(itemId, itemTitle) {
+    var updatedItems = items.filter(function(i) { return i.id !== itemId; });
+    var updatedClaims = claimsList.filter(function(c) { return c.itemId !== itemId; });
+    setDb(function(prev) {
+      var nextDb = Object.assign({}, prev, { lostFoundItems: updatedItems, lostFoundClaims: updatedClaims });
+      try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(err){}
+      return nextDb;
+    });
+    if (appendAuditLog) appendAuditLog('ADMIN_DELETE_CLAIMED_ITEM', 'Permanently deleted claimed item ' + itemTitle);
+    if (addToast) addToast('🗑️ Permanently deleted claimed item: ' + itemTitle, 'warning');
   };
 
   var renderPortalModal = function(modalElement) {
@@ -9803,12 +9756,30 @@ function LostFoundView(props) {
     onChange: function(e) { setAppealForm(Object.assign({}, appealForm, { flightNo: e.target.value })); }
   }))), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Proof of Ownership / Unique Identifying Features"), React.createElement("textarea", {
     className: "form-input",
-    rows: 3,
-    placeholder: "Provide serial numbers, passcode description, stickers, unique scratches, or exact item contents to verify ownership...",
+    rows: 2,
+    placeholder: "Provide serial numbers, passcode description, stickers, unique scratches, or exact item contents...",
     value: appealForm.proofDetails,
     onChange: function(e) { setAppealForm(Object.assign({}, appealForm, { proofDetails: e.target.value })); },
     required: true
-  })), React.createElement("button", {
+  })), React.createElement("div", null, React.createElement("label", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "📷 Upload Photo / Video Proof of Ownership (Optional)"), React.createElement("input", {
+    type: "file",
+    accept: "image/*,video/*",
+    className: "form-input",
+    onChange: function(e) {
+      var file = e.target.files && e.target.files[0];
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+          setAppealForm(Object.assign({}, appealForm, {
+            mediaUrl: evt.target.result,
+            mediaType: file.type.startsWith('video') ? 'video' : 'image'
+          }));
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+    style: { background: '#0f172a', color: '#fff' }
+  }), appealForm.mediaUrl && React.createElement("div", { style: { marginTop: '0.5rem' } }, appealForm.mediaType === 'video' ? React.createElement("video", { src: appealForm.mediaUrl, controls: true, style: { width: '100%', maxHeight: '140px', borderRadius: '8px' } }) : React.createElement("img", { src: appealForm.mediaUrl, alt: "Proof Preview", style: { width: '100%', maxHeight: '140px', objectFit: 'cover', borderRadius: '8px' } }))), React.createElement("button", {
     type: "submit",
     className: "btn btn-primary",
     style: { marginTop: '0.35rem', padding: '0.75rem', fontWeight: 800, background: 'linear-gradient(135deg, var(--accent-cyan), #0284c7)', color: '#000', cursor: 'pointer' }
@@ -9995,33 +9966,15 @@ function LostFoundView(props) {
         fontSize: '0.82rem',
         marginTop: '0.5rem'
       }
-    }, "🎉 ITEM CLAIMED & VERIFIED BY STAFF"));
+    }, "🎉 ITEM CLAIMED & VERIFIED BY STAFF"), isAdmin && React.createElement("button", {
+      className: "btn btn-secondary",
+      onClick: function() { handleDeleteClaimedItem(item.id, item.title); },
+      style: { background: 'rgba(244,63,94,0.15)', color: 'var(--accent-rose)', border: '1px solid var(--accent-rose)', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', marginTop: '0.5rem', width: '100%' }
+    }, "🗑️ Delete Claimed Item"));
   })), claimedItems.length === 0 && React.createElement("div", {
     className: "glass-card",
     style: { textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }
   }, "No claimed items archived yet.")),
-
-  // SECTION 4: RECEIVED CLAIM APPEALS (STAFF/ADMIN ONLY)
-  activeTabSection === 'CLAIMS_QUEUE' && canManage && React.createElement("div", {
-    style: { display: 'flex', flexDirection: 'column', gap: '1rem' }
-  }, React.createElement("h3", { style: { color: 'var(--accent-cyan)', margin: 0, fontSize: '1.1rem' } }, "🙋‍♂️ Passenger Item Claim Appeals (" + claimsList.length + ")"), claimsList.map(function(claim) {
-    return React.createElement("div", {
-      key: claim.id,
-      className: "glass-card",
-      style: { borderLeft: '4px solid ' + (claim.status === 'APPROVED' ? 'var(--accent-emerald)' : 'var(--accent-cyan)'), display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }
-    }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.25rem' } }, React.createElement("strong", { style: { color: 'var(--accent-cyan)', fontSize: '0.95rem' } }, claim.claimantName), React.createElement("span", { className: "badge badge-info", style: { fontSize: '0.65rem' } }, claim.status)), React.createElement("div", { style: { fontSize: '0.78rem', color: '#fff', fontWeight: 600 } }, "Claimed Item: ", claim.itemTitle), React.createElement("div", { style: { fontSize: '0.75rem', color: 'var(--text-secondary)' } }, "Contact: ", claim.claimantContact, " • Flight: ", claim.flightNo || 'N/A', " • Time: ", claim.timestamp), React.createElement("div", { style: { fontSize: '0.75rem', color: 'var(--accent-amber)', marginTop: '0.25rem', background: 'rgba(0,0,0,0.25)', padding: '0.4rem 0.6rem', borderRadius: '6px' } }, "Proof Details: ", claim.proofDetails)), claim.status === 'PENDING_VERIFICATION' && React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } }, React.createElement("button", {
-      className: "btn btn-primary",
-      onClick: function() { handleApproveClaim(claim.id, claim.itemId, claim.itemTitle); },
-      style: { background: 'var(--accent-emerald)', color: '#000', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }
-    }, "✅ Verify & Approve Claim"), React.createElement("button", {
-      className: "btn btn-secondary",
-      onClick: function() { handleDismissClaim(claim.id); },
-      style: { fontSize: '0.8rem', cursor: 'pointer' }
-    }, "❌ Dismiss")));
-  }), claimsList.length === 0 && React.createElement("div", {
-    className: "glass-card",
-    style: { textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }
-  }, "No passenger claim appeals logged yet.")),
 
   renderPortalModal(reportModalJSX),
   renderPortalModal(appealModalJSX)
@@ -14700,7 +14653,26 @@ function OlaCabBookingView({
     style: { fontWeight: 800, margin: 0 }
   }, "🚕 Official Ola Airport Taxi & Cab Hub — " + aptName + " (" + aptCode + ")"), React.createElement("div", {
     style: { fontSize: '0.8rem', color: 'var(--accent-cyan)', marginTop: '0.2rem' }
-  }, "Airport-Specific Pickup Points, Preset Destinations & Live Per-KM Fare Calculations for " + aptCode + " (" + activeData.city + ")"))), React.createElement("div", {
+  }, "Airport-Specific Pickup Points, Preset Destinations & Live Per-KM Fare Calculations for " + aptCode + " (" + activeData.city + ")")), React.createElement("a", {
+    href: "https://book.olacabs.com",
+    target: "_blank",
+    rel: "noopener noreferrer",
+    className: "btn btn-primary",
+    style: {
+      background: 'linear-gradient(135deg, #00f2fe, #4facfe)',
+      color: '#000',
+      fontWeight: 900,
+      fontSize: '0.88rem',
+      textDecoration: 'none',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      padding: '0.65rem 1.25rem',
+      borderRadius: '8px',
+      boxShadow: '0 0 15px rgba(0, 242, 254, 0.4)',
+      cursor: 'pointer'
+    }
+  }, "🚖 Open Official Ola Cab App ↗")), React.createElement("div", {
     className: "grid-2",
     style: { gap: '1.5rem' }
   }, React.createElement("div", {
@@ -14878,6 +14850,273 @@ function OlaCabBookingView({
   }, b.timestamp)))), bookings.length === 0 && React.createElement("div", {
     style: { textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }
   }, "No cab requests logged yet."))))));
+}
+
+function ReportIssueView({
+  db,
+  setDb,
+  currentUser,
+  isAdmin,
+  isStaff,
+  addToast,
+  appendAuditLog,
+  activeAirport
+}) {
+  const aptName = activeAirport?.name || 'Indira Gandhi International Airport';
+  const aptCode = activeAirport?.code || 'DEL';
+
+  const [form, setForm] = useState({
+    name: currentUser ? (currentUser.name || '') : '',
+    phone: currentUser ? (currentUser.mobile || '') : '',
+    email: currentUser ? (currentUser.email || '') : '',
+    category: 'General Inquiry',
+    urgency: 'Medium',
+    description: '',
+    notifySms: true,
+    notifyEmail: true
+  });
+
+  const [replyInput, setReplyInput] = useState({});
+
+  const tickets = (db && Array.isArray(db.tickets)) ? db.tickets : [
+    {
+      id: "TCK-84920",
+      name: "Rahul Verma",
+      phone: "+91 9876543210",
+      email: "rahul.v@gmail.com",
+      location: "Indira Gandhi International Airport (DEL)",
+      category: "Baggage & Luggage",
+      urgency: "High",
+      description: "My checked baggage from AI-102 has not arrived at Belt 4 after 45 minutes.",
+      status: "OPEN",
+      adminReply: null,
+      createdAt: "2026-08-11 14:20"
+    },
+    {
+      id: "TCK-84919",
+      name: "Priya Sharma",
+      phone: "+91 9123456789",
+      email: "priya.s@outlook.com",
+      location: "Chhatrapati Shivaji Maharaj International Airport (BOM)",
+      category: "Terminal Facility",
+      urgency: "Normal",
+      description: "Restroom near Gate 14 T2 requires maintenance.",
+      status: "RESOLVED",
+      adminReply: "Verified with Housekeeping Supervisor. Maintenance team dispatched and issue resolved.",
+      createdAt: "2026-08-11 11:05"
+    }
+  ];
+
+  const handleSubmitTicket = e => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.phone.trim() || !form.email.trim() || !form.description.trim()) {
+      if (addToast) addToast('Please fill out your Name, Phone Number, Email, and Issue Details', 'warning');
+      return;
+    }
+
+    const ticketId = 'TCK-' + Math.floor(10000 + Math.random() * 90000);
+    const newTicket = {
+      id: ticketId,
+      name: form.name,
+      phone: form.phone,
+      email: form.email,
+      location: `${aptName} (${aptCode})`,
+      category: form.category,
+      urgency: form.urgency,
+      description: form.description,
+      notifySms: form.notifySms,
+      notifyEmail: form.notifyEmail,
+      status: 'OPEN',
+      adminReply: null,
+      createdAt: new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    };
+
+    const updatedTickets = [newTicket, ...tickets];
+    setDb(prev => {
+      const nextDb = { ...prev, tickets: updatedTickets };
+      try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(e){}
+      return nextDb;
+    });
+
+    if (appendAuditLog) appendAuditLog('TICKET_CREATED', `Ticket ${ticketId} created by ${form.name} (${form.email})`);
+    if (addToast) addToast(`✅ Complaint Ticket ${ticketId} Logged! Admins notified via SMS & Email.`, 'success');
+
+    setForm({
+      name: currentUser ? (currentUser.name || '') : '',
+      phone: currentUser ? (currentUser.mobile || '') : '',
+      email: currentUser ? (currentUser.email || '') : '',
+      category: 'General Inquiry',
+      urgency: 'Medium',
+      description: '',
+      notifySms: true,
+      notifyEmail: true
+    });
+  };
+
+  const handleAdminReply = (ticketId, ticketName, ticketPhone, ticketEmail) => {
+    const replyText = replyInput[ticketId];
+    if (!replyText || !replyText.trim()) {
+      if (addToast) addToast('Please enter your response message to send', 'warning');
+      return;
+    }
+
+    const updated = tickets.map(t => t.id === ticketId ? {
+      ...t,
+      status: 'RESOLVED',
+      adminReply: replyText.trim(),
+      repliedAt: new Date().toLocaleString()
+    } : t);
+
+    setDb(prev => {
+      const nextDb = { ...prev, tickets: updated };
+      try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(e){}
+      return nextDb;
+    });
+
+    if (appendAuditLog) appendAuditLog('TICKET_RESOLVED', `Admin replied to Ticket ${ticketId} -> Sent SMS to ${ticketPhone} & Email to ${ticketEmail}`);
+    if (addToast) addToast(`📩 Response dispatched to ${ticketName} via SMS (${ticketPhone}) & Email (${ticketEmail})!`, 'success');
+
+    setReplyInput(prev => ({ ...prev, [ticketId]: '' }));
+  };
+
+  return React.createElement("div", {
+    style: { display: 'flex', flexDirection: 'column', gap: '1.5rem' }
+  }, React.createElement("div", {
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }
+  }, React.createElement("div", null, React.createElement("h2", {
+    style: { fontWeight: 800, margin: 0 }
+  }, "📝 Passenger & Airport Support Ticket System — " + aptName + " (" + aptCode + ")"), React.createElement("div", {
+    style: { fontSize: '0.8rem', color: 'var(--accent-cyan)', marginTop: '0.2rem' }
+  }, "Log Complaints or Technical Issues • Admins Respond Direct via Automated SMS & Email Alerts"))), 
+
+  React.createElement("div", {
+    className: "grid-2",
+    style: { gap: '1.5rem' }
+  }, React.createElement("div", {
+    className: "glass-card"
+  }, React.createElement("h3", {
+    style: { color: 'var(--accent-amber)', marginBottom: '1rem', fontSize: '1.1rem' }
+  }, "📩 Create New Complaint / Report Issue"), React.createElement("form", {
+    onSubmit: handleSubmitTicket,
+    style: { display: 'flex', flexDirection: 'column', gap: '0.85rem' }
+  }, React.createElement("div", null, React.createElement("label", {
+    style: { fontSize: '0.78rem', color: 'var(--text-secondary)' }
+  }, "Full Name *"), React.createElement("input", {
+    className: "form-input",
+    placeholder: "Enter your full name",
+    value: form.name,
+    onChange: e => setForm({ ...form, name: e.target.value }),
+    required: true
+  })), React.createElement("div", {
+    className: "grid-2",
+    style: { gap: '0.75rem' }
+  }, React.createElement("div", null, React.createElement("label", {
+    style: { fontSize: '0.78rem', color: 'var(--text-secondary)' }
+  }, "Phone Number (SMS Alert) *"), React.createElement("input", {
+    className: "form-input",
+    placeholder: "+91 9876543210",
+    value: form.phone,
+    onChange: e => setForm({ ...form, phone: e.target.value }),
+    required: true
+  })), React.createElement("div", null, React.createElement("label", {
+    style: { fontSize: '0.78rem', color: 'var(--text-secondary)' }
+  }, "Email ID (Email Reply) *"), React.createElement("input", {
+    type: "email",
+    className: "form-input",
+    placeholder: "user@domain.com",
+    value: form.email,
+    onChange: e => setForm({ ...form, email: e.target.value }),
+    required: true
+  }))), React.createElement("div", {
+    className: "grid-2",
+    style: { gap: '0.75rem' }
+  }, React.createElement("div", null, React.createElement("label", {
+    style: { fontSize: '0.78rem', color: 'var(--text-secondary)' }
+  }, "Issue Category"), React.createElement("select", {
+    className: "form-input",
+    value: form.category,
+    onChange: e => setForm({ ...form, category: e.target.value }),
+    style: { background: '#0f172a', color: '#fff' }
+  }, React.createElement("option", { value: "Baggage & Luggage" }, "🧳 Baggage & Luggage"), React.createElement("option", { value: "Flight Delay / Gate" }, "✈️ Flight Delay / Gate Issue"), React.createElement("option", { value: "Terminal Facility" }, "🏛️ Terminal Facility & Cleanliness"), React.createElement("option", { value: "Parking & Cab Service" }, "🚗 Parking & Cab Service"), React.createElement("option", { value: "Security & Safety" }, "🛡️ Security & Safety"), React.createElement("option", { value: "General Inquiry" }, "ℹ️ General Inquiry"))), React.createElement("div", null, React.createElement("label", {
+    style: { fontSize: '0.78rem', color: 'var(--text-secondary)' }
+  }, "Urgency Level"), React.createElement("select", {
+    className: "form-input",
+    value: form.urgency,
+    onChange: e => setForm({ ...form, urgency: e.target.value }),
+    style: { background: '#0f172a', color: '#fff' }
+  }, React.createElement("option", { value: "Normal" }, "🟢 Normal"), React.createElement("option", { value: "High" }, "🟡 High"), React.createElement("option", { value: "Urgent" }, "🟠 Urgent"), React.createElement("option", { value: "Critical Emergency" }, "🔴 Critical Emergency")))), React.createElement("div", null, React.createElement("label", {
+    style: { fontSize: '0.78rem', color: 'var(--text-secondary)' }
+  }, "Detailed Complaint / Issue Description *"), React.createElement("textarea", {
+    className: "form-input",
+    rows: 4,
+    placeholder: "Explain what happened, location details, flight numbers, or specific assistance required...",
+    value: form.description,
+    onChange: e => setForm({ ...form, description: e.target.value }),
+    required: true
+  })), React.createElement("div", {
+    style: { display: 'flex', gap: '1rem', alignItems: 'center', fontSize: '0.78rem', color: 'var(--accent-cyan)' }
+  }, React.createElement("label", { style: { cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' } }, React.createElement("input", {
+    type: "checkbox",
+    checked: form.notifySms,
+    onChange: e => setForm({ ...form, notifySms: e.target.checked })
+  }), "📲 Receive Response via SMS"), React.createElement("label", { style: { cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' } }, React.createElement("input", {
+    type: "checkbox",
+    checked: form.notifyEmail,
+    onChange: e => setForm({ ...form, notifyEmail: e.target.checked })
+  }), "✉️ Receive Response via Email")), React.createElement("button", {
+    type: "submit",
+    className: "btn btn-primary",
+    style: { padding: '0.75rem', fontWeight: 900, background: 'linear-gradient(135deg, var(--accent-amber), #d97706)', color: '#000', cursor: 'pointer' }
+  }, "📩 Submit Complaint Ticket"))), 
+
+  React.createElement("div", {
+    style: { display: 'flex', flexDirection: 'column', gap: '1rem' }
+  }, React.createElement("div", {
+    className: "glass-card"
+  }, React.createElement("h3", {
+    style: { color: 'var(--accent-cyan)', marginBottom: '1rem', fontSize: '1.1rem' }
+  }, "🎟️ Support Ticket Desk & Admin Reply Vault (" + tickets.length + ")"), React.createElement("div", {
+    style: { display: 'flex', flexDirection: 'column', gap: '1rem' }
+  }, tickets.map(function(t) {
+    return React.createElement("div", {
+      key: t.id,
+      style: {
+        padding: '1rem',
+        borderRadius: '10px',
+        background: 'rgba(15,23,42,0.8)',
+        borderLeft: '4px solid ' + (t.status === 'RESOLVED' ? 'var(--accent-emerald)' : t.urgency === 'Critical Emergency' || t.urgency === 'Urgent' ? 'var(--accent-rose)' : 'var(--accent-amber)')
+      }
+    }, React.createElement("div", {
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }
+    }, React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center' } }, React.createElement("strong", { style: { color: 'var(--brand-cyan)', fontSize: '0.92rem' } }, t.id), React.createElement("span", { className: "badge " + (t.status === 'RESOLVED' ? 'badge-success' : 'badge-warning') }, t.status === 'RESOLVED' ? '✅ RESOLVED' : '⏳ OPEN')), React.createElement("span", { style: { fontSize: '0.72rem', color: 'var(--text-muted)' } }, t.createdAt)), React.createElement("div", {
+      style: { fontWeight: 700, color: '#fff', fontSize: '0.88rem', marginBottom: '0.2rem' }
+    }, t.name, " • 📞 ", t.phone, " • ✉️ ", t.email), React.createElement("div", {
+      style: { fontSize: '0.76rem', color: 'var(--accent-amber)', marginBottom: '0.4rem' }
+    }, "Category: ", t.category, " • Urgency: ", t.urgency, " • Location: ", t.location), React.createElement("p", {
+      style: { fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 0.6rem 0', lineHeight: 1.4 }
+    }, t.description), t.adminReply ? React.createElement("div", {
+      style: { padding: '0.6rem 0.85rem', borderRadius: '8px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.4)', color: 'var(--accent-emerald)', fontSize: '0.78rem' }
+    }, "💬 Admin Reply (Sent to SMS & Email): ", t.adminReply) : (isAdmin || isStaff) ? React.createElement("div", {
+      style: { marginTop: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.65rem' }
+    }, React.createElement("label", { style: { fontSize: '0.73rem', color: 'var(--accent-cyan)' } }, "💬 Admin Reply via SMS & Email:"), React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } }, React.createElement("input", {
+      className: "form-input",
+      placeholder: "Type your official response to passenger...",
+      value: replyInput[t.id] || '',
+      onChange: function(e) {
+        var val = e.target.value;
+        setReplyInput(function(prev) { return Object.assign({}, prev, { [t.id]: val }); });
+      },
+      style: { flex: 1, fontSize: '0.8rem', background: '#07090e' }
+    }), React.createElement("button", {
+      className: "btn btn-primary",
+      onClick: function() { handleAdminReply(t.id, t.name, t.phone, t.email); },
+      style: { background: 'var(--accent-emerald)', color: '#000', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap' }
+    }, "📤 Send SMS & Email Reply"))) : React.createElement("div", {
+      style: { fontSize: '0.72rem', color: 'var(--accent-amber)', fontStyle: 'italic', marginTop: '0.3rem' }
+    }, "⏳ Ticket logged. Admin team will respond via SMS / Email shortly."));
+  }), tickets.length === 0 && React.createElement("div", {
+    style: { textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }
+  }, "No support tickets logged yet."))))));
 }
 
 // RENDER
