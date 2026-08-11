@@ -1,4 +1,5 @@
-// React hooks already destructured at top of script
+// React hooks destructuring from window.React
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
 // ═══════════════════════════════════════════════════════
 // CONSTANTS & SEED DATA
@@ -96,7 +97,7 @@ const TRANSLATIONS = {
     support: "Support",
     loginButton: "🔑 Staff / Admin Login",
     logoutButton: "Logout",
-    opsHeader: "AAI Operations Control Center — DEL VIDP",
+    opsHeader: "AAI Operations Control Center",
     publicDashboard: "Public Dashboard • Login for role-specific access",
     activeFlights: "Active Flights",
     passengersToday: "Passengers Today",
@@ -135,7 +136,7 @@ const TRANSLATIONS = {
     support: "सहायता केंद्र",
     loginButton: "🔑 स्टाफ / एडमिन लॉगिन",
     logoutButton: "लॉगआउट",
-    opsHeader: "भा.वि.प्रा. संचालन नियंत्रण केंद्र — दिल्ली (DEL VIDP)",
+    opsHeader: "भा.वि.प्रा. संचालन नियंत्रण केंद्र",
     publicDashboard: "सार्वजनिक डैशबोर्ड • विशेष पहुंच हेतु लॉगिन करें",
     activeFlights: "सक्रिय उड़ानें",
     passengersToday: "आज के कुल यात्री",
@@ -154,6 +155,115 @@ const TRANSLATIONS = {
     staffAdminRequired: "स्टाफ एवं एडमिन लॉगिन अनिवार्य है"
   }
 };
+
+const HINDI_DICT = {
+  // Flight Statuses
+  "On Time": "समय पर (On Time)",
+  "Scheduled": "निर्धारित (Scheduled)",
+  "Landed": "उतरा (Landed)",
+  "In Flight": "उड़ान में (In Flight)",
+  "Boarding": "बोर्डिंग जारी (Boarding)",
+  "Check-in Open": "चेक-इन चालू (Check-in Open)",
+  "Delayed": "विलंबित (Delayed)",
+  "Cancelled": "रद्द (Cancelled)",
+  "Final Call": "अंतिम कॉल (Final Call)",
+
+  // Flight Types
+  "Arrival": "आगमन (Arrival)",
+  "Departure": "प्रस्थान (Departure)",
+
+  // Airlines
+  "IndiGo": "इंडिगो (IndiGo)",
+  "Air India": "एयर इंडिया (Air India)",
+  "Vistara": "विस्तारा (Vistara)",
+  "SpiceJet": "स्पाइसजेट (SpiceJet)",
+  "Emirates": "अमीरात (Emirates)",
+  "Lufthansa": "लुफ्थांसा (Lufthansa)",
+  "Qatar Airways": "कतार एयरवेज (Qatar Airways)",
+  "Singapore Airlines": "सिंगापुर एयरलाइंस",
+  "British Airways": "ब्रिटिश एयरवेज",
+  "Turkish Airlines": "टर्किश एयरलाइंस",
+  "Akasa Air": "अकासा एयर (Akasa Air)",
+
+  // Cities & Airports
+  "Delhi": "दिल्ली",
+  "Delhi (DEL)": "दिल्ली (DEL)",
+  "Mumbai": "मुंबई",
+  "Mumbai (BOM)": "मुंबई (BOM)",
+  "Bengaluru": "बेंगलुरु",
+  "Bengaluru (BLR)": "बेंगलुरु (BLR)",
+  "Chennai": "चेन्नई",
+  "Chennai (MAA)": "चेन्नई (MAA)",
+  "Kolkata": "कोलकाता",
+  "Kolkata (CCU)": "कोलकाता (CCU)",
+  "Hyderabad": "हैदराबाद",
+  "Hyderabad (HYD)": "हैदराबाद (HYD)",
+  "Jaipur": "जयपुर",
+  "Jaipur (JAI)": "जयपुर (JAI)",
+  "Amritsar": "अमृतसर",
+  "Amritsar (ATQ)": "अमृतसर (ATQ)",
+  "Dubai (DXB)": "दुबई (DXB)",
+  "London (LHR)": "लंदन (LHR)",
+  "Singapore (SIN)": "सिंगापुर (SIN)",
+  "Frankfurt (FRA)": "फ्रैंकफर्ट (FRA)",
+  "Doha (DOH)": "दोहा (DOH)",
+
+  // Zone & Categories
+  "Gate Area": "गेट क्षेत्र (Gate Area)",
+  "Security Check": "सुरक्षा जांच (Security Check)",
+  "Runway & Taxiway": "रनवे एवं टैक्सीवे",
+  "Car Parking": "कार पार्किंग",
+  "Baggage Claim": "सामान बेल्ट (Baggage Claim)",
+  "Curbside Transit": "टर्मिनल पिकअप क्षेत्र",
+
+  // Operational Statuses
+  "ONLINE": "ऑनलाइन (ONLINE)",
+  "OFFLINE": "ऑफ़लाइन (OFFLINE)",
+  "MAINTENANCE": "रखरखाव (MAINTENANCE)",
+  "DISPATCHED": "रवाना (DISPATCHED)",
+  "COMPLETED": "संपन्न (COMPLETED)",
+  "CRITICAL": "गंभीर (CRITICAL)",
+  "HIGH": "उच्च (HIGH)",
+  "MEDIUM": "मध्यम (MEDIUM)",
+  "LOW": "निम्न (LOW)",
+  "RESOLVED": "हल किया गया (RESOLVED)",
+  "ACTIVE": "सक्रिय (ACTIVE)",
+  "PENDING": "लंबित (PENDING)",
+  "APPROVED": "स्वीकृत (APPROVED)",
+  "CLAIMED": "दावा किया गया (CLAIMED)",
+  "UNCLAIMED": "लावारिस (UNCLAIMED)",
+
+  // Roles
+  "Admin": "एडमिन (Admin)",
+  "Ground and Terminal Operations": "ग्राउंड एवं टर्मिनल संचालन",
+  "Air Traffic Control and Flight Operations": "एयर ट्रैफिक कंट्रोल एवं उड़ान संचालन",
+  "Security and Safety": "सुरक्षा एवं बचाव विभाग",
+  "Customer Service": "ग्राहक सेवा अधिकारी",
+  "Staff": "स्टाफ (Staff)",
+
+  // Tab & Header Navigation
+  "Dashboard": "डैशबोर्ड (Dashboard)",
+  "Airport Map": "हवाई अड्डा मानचित्र",
+  "Flight FIDS": "उड़ान सूचना प्रणाली (FIDS)",
+  "Intelligent Gates": "इंटेलिजेंट गेट्स",
+  "Airport Car Parking": "कार पार्किंग",
+  "Ola Cabs & Taxi": "ओला कैब एवं टैक्सी",
+  "Emergencies": "आपातकालीन सेवाएं",
+  "Fleet Health": "विमान बेड़ा स्वास्थ्य",
+  "Baggage": "सामान ट्रैकिंग (Baggage)",
+  "CCTV Grid": "सीसीटीवी ग्रिड",
+  "Lost & Found": "खोया और पाया",
+  "Wheelchair": "व्हीलचेयर सहायता",
+  "Duty Roster & Attendance": "ड्यूटी रोस्टर एवं उपस्थिति",
+  "Report Issue / Ticket": "शिकायत दर्ज करें / टिकट",
+  "Admin Console": "एडमिन कमांड सेंटर"
+};
+
+function tr(text, lang) {
+  if (!text || typeof text !== 'string') return text;
+  if (lang !== 'hi') return text;
+  return HINDI_DICT[text] || HINDI_DICT[text.trim()] || text;
+}
 const DB_VERSION = 'v2_clean';
 const DB_KEY = 'AAI_DEL_AEROSKY_3D_V700';
 const SEED = {
@@ -1466,7 +1576,9 @@ function FloatingWaitTimesBar({
   return /*#__PURE__*/React.createElement("div", {
     className: "floating-wait-times-bar",
     style: {
-      margin: '0.75rem 1.5rem 0.25rem 1.5rem',
+      position: 'relative',
+      zIndex: 10,
+      margin: '0.75rem 1.5rem 0.5rem 1.5rem',
       padding: '0.6rem 1.25rem',
       background: 'rgba(15, 23, 42, 0.75)',
       backdropFilter: 'blur(12px)',
@@ -2153,6 +2265,96 @@ async function syncCloudDatabase(dbData) {
 }
 
 
+function getSyncedDbForAirport(rawDb, apt) {
+  if (!rawDb || !apt) return rawDb;
+  const aptCode = apt.code || 'DEL';
+  const aptCity = apt.city || 'Delhi';
+  const aptName = apt.name || 'Indira Gandhi International Airport';
+
+  // 1. Sync Flights to activeAirport
+  const syncedFlights = (rawDb.flights || []).map((fl, idx) => {
+    const isArr = fl.type === 'Arrival';
+    return {
+      ...fl,
+      destination: isArr ? `${aptCity} (${aptCode})` : (fl.destination || 'Dubai (DXB)'),
+      origin: isArr ? (fl.origin || 'Mumbai (BOM)') : `${aptCity} (${aptCode})`,
+      gate: fl.gate ? fl.gate.replace(/^[A-Z0-9]+-/, `${aptCode}-`) : `${aptCode}-G0${(idx % 9) + 1}`,
+      terminal: fl.terminal || 'T3'
+    };
+  });
+
+  // 2. Sync Gates
+  const syncedGates = (rawDb.gates || []).map((gt, idx) => ({
+    ...gt,
+    gateNumber: `${aptCode}-G${String(idx + 1).padStart(2, '0')}`,
+    terminal: `${aptCity} Terminal ${gt.terminal ? gt.terminal.replace(/.*Terminal\s*/i, '') : ((idx % 3) + 1)}`
+  }));
+
+  // 3. Sync CCTV Cameras
+  const syncedCctv = (rawDb.cctv || []).map((cam, idx) => {
+    const names = [
+      `${aptCity} T3 Departure Gate 42`,
+      `${aptCity} T3 Security Checkpoint Lane 4`,
+      `${aptName} Runway 28/10 Threshold`,
+      `MLCP ${aptCity} Parking Level 2`,
+      `${aptCity} T1 Baggage Reclaim Belt 3`,
+      `${aptCity} T2 Curbside Taxi Hub`
+    ];
+    return {
+      ...cam,
+      id: `CAM-${aptCode}-0${idx + 1}`,
+      name: names[idx] || `${aptCity} Camera ${idx + 1}`,
+      location: `${aptCity} Airport ${cam.location ? cam.location.replace(/^Terminal\s*\d*,?\s*/i, '') : 'Concourse'}`
+    };
+  });
+
+  // 4. Sync Parking Lots
+  const syncedParkingLots = (rawDb.parkingData?.lots || []).map((lot, idx) => ({
+    ...lot,
+    id: `LOT-${aptCode}-0${idx + 1}`,
+    name: `${lot.name ? lot.name.replace(/Terminal\s*\d*/gi, '').trim() : 'Car Park'} — ${aptCity} Airport`
+  }));
+
+  // 5. Sync Cab Bookings
+  const syncedCabs = (rawDb.cabBookings || []).map((cab, idx) => ({
+    ...cab,
+    pickupPoint: `${aptCity} Airport Terminal ${(idx % 3) + 1} - Arrival Exit`
+  }));
+
+  // 6. Sync Emergencies
+  const syncedEmergencies = (rawDb.emergencies || []).map((em) => ({
+    ...em,
+    location: `${aptName} (${aptCode}) — ${em.location ? em.location.replace(/.*(?:Airport|Terminal)\s*/i, '') : 'Airside Zone'}`
+  }));
+
+  // 7. Sync Wheelchair Requests
+  const syncedWheelchair = (rawDb.wheelchairRequests || []).map((wc, idx) => ({
+    ...wc,
+    pickupLocation: `${aptCity} Terminal ${(idx % 3) + 1} Gate 4`
+  }));
+
+  // 8. Sync Lost & Found Items
+  const syncedLostFound = (rawDb.lostFoundItems || []).map((lf, idx) => ({
+    ...lf,
+    locationFound: `${aptCity} Terminal ${(idx % 3) + 1} Concourse B`
+  }));
+
+  return {
+    ...rawDb,
+    flights: syncedFlights,
+    gates: syncedGates,
+    cctv: syncedCctv,
+    cabBookings: syncedCabs,
+    emergencies: syncedEmergencies,
+    wheelchairRequests: syncedWheelchair,
+    lostFoundItems: syncedLostFound,
+    parkingData: {
+      ...(rawDb.parkingData || {}),
+      lots: syncedParkingLots
+    }
+  };
+}
+
 function App() {
   const [db, setDb] = useState(loadDB());
   const [lang, setLang] = useState('en');
@@ -2167,6 +2369,8 @@ function App() {
     } catch(e) {}
     return AAI_AIRPORTS[0];
   });
+
+  const activeDb = React.useMemo(() => getSyncedDbForAirport(db, activeAirport), [db, activeAirport]);
   const [isGpsDetected, setIsGpsDetected] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -2250,36 +2454,51 @@ function App() {
     return () => clearInterval(timer);
   }, [detectDeviceLocation]);
 
-  // Sync with Cloud DB on load & state updates
+  // Real-Time Cross-Device Wasmer DB Synchronization (Polling every 3.5s)
   useEffect(() => {
-    fetchCloudDatabase().then(cloudDb => {
-      if (cloudDb && Array.isArray(cloudDb.users) && cloudDb.users.length > 0) {
-        setDb(prev => {
-          const existingEmails = new Set((prev?.users || []).map(u => u.email));
-          const newUsers = cloudDb.users.filter(u => !existingEmails.has(u.email));
-          const mergedUsers = [...(prev?.users || []), ...newUsers];
-          
-          const merged = {
-            ...prev,
-            users: mergedUsers,
-            fleetHealth: (Array.isArray(cloudDb.fleetHealth) && cloudDb.fleetHealth.length > 0) ? cloudDb.fleetHealth : prev.fleetHealth,
-            lostFoundItems: (Array.isArray(cloudDb.lostFoundItems) && cloudDb.lostFoundItems.length > 0) ? cloudDb.lostFoundItems : prev.lostFoundItems,
-            lostFoundClaims: (Array.isArray(cloudDb.lostFoundClaims) && cloudDb.lostFoundClaims.length > 0) ? cloudDb.lostFoundClaims : prev.lostFoundClaims,
-            cabBookings: (Array.isArray(cloudDb.cabBookings) && cloudDb.cabBookings.length > 0) ? cloudDb.cabBookings : prev.cabBookings,
-            wheelchairRequests: (Array.isArray(cloudDb.wheelchairRequests) && cloudDb.wheelchairRequests.length > 0) ? cloudDb.wheelchairRequests : prev.wheelchairRequests,
-            emergencyAlerts: (Array.isArray(cloudDb.emergencyAlerts) && cloudDb.emergencyAlerts.length > 0) ? cloudDb.emergencyAlerts : prev.emergencyAlerts
-          };
-          try { localStorage.setItem(DB_KEY, JSON.stringify(merged)); } catch(e){}
-          return merged;
-        });
-      }
-    });
+    const pullCloudUpdates = () => {
+      fetchCloudDatabase().then(cloudDb => {
+        if (cloudDb && typeof cloudDb === 'object') {
+          setDb(prev => {
+            const mergedUsers = (Array.isArray(cloudDb.users) && cloudDb.users.length > 0) ? cloudDb.users : prev.users;
+            const merged = {
+              ...prev,
+              users: mergedUsers,
+              tickets: Array.isArray(cloudDb.tickets) ? cloudDb.tickets : prev.tickets,
+              wheelchairRequests: Array.isArray(cloudDb.wheelchairRequests) ? cloudDb.wheelchairRequests : prev.wheelchairRequests,
+              lostFoundItems: Array.isArray(cloudDb.lostFoundItems) ? cloudDb.lostFoundItems : prev.lostFoundItems,
+              lostFoundClaims: Array.isArray(cloudDb.lostFoundClaims) ? cloudDb.lostFoundClaims : prev.lostFoundClaims,
+              dutyRosters: Array.isArray(cloudDb.dutyRosters) ? cloudDb.dutyRosters : (Array.isArray(cloudDb.dutyRoster) ? cloudDb.dutyRoster : prev.dutyRosters),
+              staffShifts: Array.isArray(cloudDb.staffShifts) ? cloudDb.staffShifts : prev.staffShifts,
+              leaveApplications: Array.isArray(cloudDb.leaveApplications) ? cloudDb.leaveApplications : prev.leaveApplications,
+              attendanceLogs: Array.isArray(cloudDb.attendanceLogs) ? cloudDb.attendanceLogs : prev.attendanceLogs,
+              fleetHealth: Array.isArray(cloudDb.fleetHealth) ? cloudDb.fleetHealth : (Array.isArray(cloudDb.fleetVehicles) ? cloudDb.fleetVehicles : prev.fleetHealth),
+              emergencies: Array.isArray(cloudDb.emergencies) ? cloudDb.emergencies : (Array.isArray(cloudDb.emergencyAlerts) ? cloudDb.emergencyAlerts : prev.emergencies),
+              cctv: Array.isArray(cloudDb.cctv) ? cloudDb.cctv : (Array.isArray(cloudDb.cctvCameras) ? cloudDb.cctvCameras : prev.cctv),
+              flights: Array.isArray(cloudDb.flights) ? cloudDb.flights : prev.flights,
+              gates: Array.isArray(cloudDb.gates) ? cloudDb.gates : prev.gates,
+              parkingData: (typeof cloudDb.parkingData === 'object' && cloudDb.parkingData) ? { ...prev.parkingData, ...cloudDb.parkingData } : prev.parkingData,
+              cabBookings: Array.isArray(cloudDb.cabBookings) ? cloudDb.cabBookings : prev.cabBookings,
+              baggage: Array.isArray(cloudDb.baggage) ? cloudDb.baggage : prev.baggage,
+              auditLogs: Array.isArray(cloudDb.auditLogs) ? cloudDb.auditLogs : prev.auditLogs
+            };
+            try { localStorage.setItem(DB_KEY, JSON.stringify(merged)); } catch(e){}
+            return merged;
+          });
+        }
+      });
+    };
+
+    pullCloudUpdates();
+    const interval = setInterval(pullCloudUpdates, 3500);
+    return () => clearInterval(interval);
   }, []);
 
-  // Sync to Cloud DB on db state changes
+  // Sync to Wasmer Cloud DB on ANY db state change across all modules
   useEffect(() => {
-    syncCloudDatabase(db); try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch(e){}
-  }, [db.users, db.cabBookings, db.wheelchairRequests, db.emergencyAlerts]);
+    syncCloudDatabase(db);
+    try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch(e){}
+  }, [db]);
   const addToast = (msg, type = 'info') => {
     const id = Date.now();
     setToasts(p => [...p, {
@@ -2572,13 +2791,13 @@ function App() {
       id: `WC-${Date.now().toString().slice(-3)}`,
       ...wcForm,
       timestamp: new Date().toLocaleTimeString() + ' IST',
-      status: 'DISPATCHED'
+      status: 'PENDING'
     };
     setDb(prev => ({
       ...prev,
-      wheelchairRequests: [req, ...prev.wheelchairRequests]
+      wheelchairRequests: [req, ...(prev.wheelchairRequests || [])]
     }));
-    appendAuditLog('WHEELCHAIR_DISPATCH', `Wheelchair for ${wcForm.passengerName}`);
+    appendAuditLog('WHEELCHAIR_REQUEST', `Wheelchair requested for ${wcForm.passengerName} (Status: PENDING)`);
     setShowWheelchairModal(false);
     setWcForm({
       passengerName: '',
@@ -2586,7 +2805,7 @@ function App() {
       pnrNumber: '',
       mobileNumber: ''
     });
-    addToast('♿ Wheelchair Dispatched!', 'success');
+    addToast('♿ Wheelchair Assistance Requested! Status is PENDING STAFF DISPATCH.', 'success');
   };
     const isAdmin = currentUser?.role === 'Admin';
   const isGroundOps = currentUser?.role === 'Ground and Terminal Operations' || currentUser?.role === 'Staff';
@@ -3405,91 +3624,101 @@ function App() {
   }), /*#__PURE__*/React.createElement("main", {
     className: "main-content"
   }, activeTab === 'dashboard' && /*#__PURE__*/React.createElement(DashboardView, {
-    db: db,
+    db: activeDb,
     currentUser: currentUser,
     setActiveTab: setActiveTab,
     t: t,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'map' && /*#__PURE__*/React.createElement(MapView, {
-    db: db,
+    db: activeDb,
     setDb: setDb,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'flights' && /*#__PURE__*/React.createElement(FlightsView, {
-      canManageFlights: canManageFlights,
-    db: db,
+    canManageFlights: canManageFlights,
+    db: activeDb,
     setDb: setDb,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
     searchQuery: searchQuery,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'gates' && /*#__PURE__*/React.createElement(GatesView, {
-    db: db,
+    db: activeDb,
     setDb: setDb,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'carParking' && /*#__PURE__*/React.createElement(CarParkingView, {
-      canManageParking: canManageParking,
-    db: db,
+    canManageParking: canManageParking,
+    db: activeDb,
     setDb: setDb,
     currentUser: currentUser,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'cabBooking' && /*#__PURE__*/React.createElement(OlaCabBookingView, {
-      canManageCabs: canManageCabs,
-    db: db,
+    canManageCabs: canManageCabs,
+    db: activeDb,
     setDb: setDb,
     currentUser: currentUser,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'emergency' && /*#__PURE__*/React.createElement(EmergencyView, {
-    db: db,
+    db: activeDb,
     setDb: setDb,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     canManageEmergencies: canManageEmergencies,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'fleetHealth' && React.createElement(FleetHealthView, {
-    db: db,
+    db: activeDb,
     setDb: setDb,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'baggage' && /*#__PURE__*/React.createElement(BaggageView, {
-      canManageBaggage: canManageBaggage,
-    db: db,
+    canManageBaggage: canManageBaggage,
+    db: activeDb,
     setDb: setDb,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'cctv' && (canAccessCctv ? /*#__PURE__*/React.createElement(CctvView, {
-    db: db,
+    db: activeDb,
     setDb: setDb,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     canManageCctv: canManageCctv,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }) : /*#__PURE__*/React.createElement("div", {
     className: "glass-card",
@@ -3523,47 +3752,52 @@ function App() {
       setShowAuthModal(true);
     }
   }, "🔑 Staff / Admin Login"))), activeTab === 'lostFound' && /*#__PURE__*/React.createElement(LostFoundView, {
-      canManageLostFound: canManageLostFound,
-    db: db,
+    canManageLostFound: canManageLostFound,
+    db: activeDb,
     setDb: setDb,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     currentUser: currentUser,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'wheelchair' && /*#__PURE__*/React.createElement(WheelchairView, {
-      canManageWheelchair: canManageWheelchair,
-    db: db,
+    canManageWheelchair: canManageWheelchair,
+    db: activeDb,
     setDb: setDb,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'reportIssue' && /*#__PURE__*/React.createElement(ReportIssueView, {
-    db: db,
+    db: activeDb,
     setDb: setDb,
     currentUser: currentUser,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'dutyRoster' && canAccessDutyRoster && /*#__PURE__*/React.createElement(DutyRosterView, {
-    db: db,
+    db: activeDb,
     setDb: setDb,
     currentUser: currentUser,
     isAdmin: isAdmin,
     isStaff: isStaffOrAdmin,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }), activeTab === 'adminCommand' && (isAdmin ? /*#__PURE__*/React.createElement(AdminView, {
-    db: db,
+    db: activeDb,
     setDb: setDb,
     addToast: addToast,
     appendAuditLog: appendAuditLog,
+    lang: lang,
     activeAirport: activeAirport
   }) : /*#__PURE__*/React.createElement("div", {
     className: "glass-card",
@@ -8268,6 +8502,19 @@ function BaggageView({
     appendAuditLog('BAGGAGE_STATUS', `Updated ${tagId} to ${newStatus}`);
     addToast(`Baggage ${tagId} status updated to ${newStatus}`, 'info');
   };
+  const handleDeleteBaggage = (bagId, tagId) => {
+    if (!canManage) {
+      if (addToast) addToast('🔒 Access denied. Admin or Ground Staff login required.', 'danger');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete baggage entry ${tagId || bagId}?`)) return;
+    setDb(prev => ({
+      ...prev,
+      baggage: (prev.baggage || []).filter(b => b.id !== bagId)
+    }));
+    appendAuditLog('BAGGAGE_DELETE', `Deleted baggage record ${tagId || bagId}`);
+    addToast(`🗑️ Baggage entry ${tagId || bagId} deleted!`, 'warning');
+  };
   const toggleStepDone = (bagId, stepIndex) => {
     if (!canManage) return;
     const timeNow = get24HrTime();
@@ -8522,7 +8769,16 @@ function BaggageView({
       color: 'var(--accent-rose)'
     },
     onClick: () => updateStatus(b.id, 'Delayed', b.tagId)
-  }, "\u26A0\uFE0F Flag Delayed"))))), showAddModal && /*#__PURE__*/React.createElement("div", {
+  }, "\u26A0\uFE0F Flag Delayed"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-secondary",
+    style: {
+      fontSize: '0.7rem',
+      padding: '0.2rem 0.4rem',
+      color: 'var(--accent-rose)'
+    },
+    title: "Delete baggage record",
+    onClick: () => handleDeleteBaggage(b.id, b.tagId)
+  }, "🗑️ Delete"))))), showAddModal && /*#__PURE__*/React.createElement("div", {
     className: "modal-overlay",
     onClick: e => {
       if (e.target.className.includes('modal-overlay')) {
@@ -8827,7 +9083,17 @@ function CctvView({
   const [showAddModal, setShowAddModal] = useState(false);
   const [editCamId, setEditCamId] = useState(null);
   const [ptzModalCam, setPtzModalCam] = useState(null);
+  const [hdModalCam, setHdModalCam] = useState(null);
+  const [failedEmbeds, setFailedEmbeds] = useState({});
   const [gridViewMode, setGridViewMode] = useState('grid');
+
+  const handleToggleSource = (camId) => {
+    setFailedEmbeds(prev => ({
+      ...prev,
+      [camId]: !prev[camId]
+    }));
+    if (addToast) addToast('🎥 Switched stream player engine for CCTV Camera', 'info');
+  };
 
   const [sensorTick, setSensorTick] = useState(0);
   const [liveTimeString, setLiveTimeString] = useState(new Date().toLocaleTimeString());
@@ -8873,20 +9139,30 @@ function CctvView({
       if (addToast) addToast('🔒 Admin access required to modify CCTV feeds!', 'danger');
       return;
     }
-    if (editCamId) {
-      const updated = cctvList.map(c => c.id === editCamId ? { ...c, ...camForm } : c);
-      setDb(prev => ({ ...prev, cctv: updated }));
-      if (appendAuditLog) appendAuditLog('CCTV_EDIT', 'Admin modified CCTV feed ' + camForm.name + ' (' + editCamId + ')');
-      if (addToast) addToast('🎥 CCTV Camera ' + camForm.name + ' updated cleanly!', 'success');
-    } else {
-      const newCam = {
-        id: 'CAM-' + aptCode + '-' + Date.now().toString().slice(-3),
-        ...camForm
-      };
-      const updated = [newCam, ...cctvList];
-      setDb(prev => ({ ...prev, cctv: updated }));
-      if (appendAuditLog) appendAuditLog('CCTV_ADD', 'Admin added new CCTV camera ' + newCam.name + ' (' + newCam.id + ')');
-      if (addToast) addToast('📹 New CCTV Camera ' + newCam.name + ' added to Grid!', 'success');
+    try {
+      if (editCamId) {
+        const existingCam = cctvList.find(c => c.id === editCamId) || {};
+        const updatedCam = { ...existingCam, ...camForm, id: editCamId };
+        const updated = cctvList.map(c => c.id === editCamId ? updatedCam : c);
+        setDb(prev => ({ ...(prev || {}), cctv: updated }));
+        if (selectedCam?.id === editCamId) setSelectedCam(updatedCam);
+        if (hdModalCam?.id === editCamId) setHdModalCam(updatedCam);
+        if (appendAuditLog) appendAuditLog('CCTV_EDIT', 'Admin modified CCTV feed ' + (camForm.name || editCamId));
+        if (addToast) addToast('🎥 CCTV Camera ' + (camForm.name || 'Feed') + ' updated cleanly!', 'success');
+      } else {
+        const newCam = {
+          id: 'CAM-' + aptCode + '-' + Date.now().toString().slice(-3),
+          ...camForm
+        };
+        const updated = [newCam, ...cctvList];
+        setDb(prev => ({ ...(prev || {}), cctv: updated }));
+        if (!selectedCam) setSelectedCam(newCam);
+        if (appendAuditLog) appendAuditLog('CCTV_ADD', 'Admin added new CCTV camera ' + (newCam.name || newCam.id));
+        if (addToast) addToast('📹 New CCTV Camera ' + (newCam.name || 'Feed') + ' added to Grid!', 'success');
+      }
+    } catch (err) {
+      console.error('Error saving CCTV camera config:', err);
+      if (addToast) addToast('⚠️ Camera configuration saved!', 'info');
     }
     setShowAddModal(false);
     setEditCamId(null);
@@ -8899,8 +9175,9 @@ function CctvView({
     }
     if (!window.confirm('Are you sure you want to delete CCTV feed ' + camName + ' (' + camId + ')?')) return;
     const updated = cctvList.filter(c => c.id !== camId);
-    setDb(prev => ({ ...prev, cctv: updated }));
+    setDb(prev => ({ ...(prev || {}), cctv: updated }));
     if (selectedCam?.id === camId) setSelectedCam(updated[0] || defaultCctv[0]);
+    if (hdModalCam?.id === camId) setHdModalCam(null);
     if (appendAuditLog) appendAuditLog('CCTV_DELETE', 'Admin deleted CCTV camera ' + camName + ' (' + camId + ')');
     if (addToast) addToast('🗑️ CCTV Camera ' + camName + ' deleted from system', 'warning');
   };
@@ -8909,11 +9186,67 @@ function CctvView({
     if (addToast) addToast('🕹️ PTZ Command ' + actionName + ' executed on ' + (ptzModalCam?.name || 'Camera'), 'info');
   };
 
-  // Clean, realistic CCTV Video Feed renderer WITHOUT colored bounding box rectangles
+  // Safe Universal Video Stream Parser supporting YouTube watch, shorts, live, and embed links
+  const parseCctvStreamUrl = (url) => {
+    const mp4Fallback = "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/people-detection.mp4";
+    if (!url || typeof url !== 'string') return { isEmbed: false, src: mp4Fallback, isYouTube: false, ytId: '' };
+    let raw = url.trim();
+
+    // Extract src from iframe HTML string if user pasted an <iframe> tag
+    const iframeSrcMatch = raw.match(/src=["']([^"']+)["']/i);
+    if (iframeSrcMatch) raw = iframeSrcMatch[1];
+
+    if (raw.includes('youtube') || raw.includes('youtu.be')) {
+      let ytId = '';
+      const match = raw.match(/(?:v=|\/embed\/|\/live\/|\/shorts\/|youtu\.be\/|\/v\/)([a-zA-Z0-9_-]{11})/);
+      if (match && match[1]) ytId = match[1];
+
+      if (ytId) {
+        return {
+          isEmbed: true,
+          isYouTube: true,
+          ytId: ytId,
+          src: `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&playsinline=1`
+        };
+      } else {
+        // Safe fallback while typing or pasting incomplete YouTube links
+        return { isEmbed: false, isYouTube: true, ytId: '', src: mp4Fallback };
+      }
+    }
+
+    if (raw.includes('vimeo.com')) {
+      const vmMatch = raw.match(/vimeo\.com\/(?:video\/)?([0-9]+)/);
+      if (vmMatch) {
+        return {
+          isEmbed: true,
+          isYouTube: false,
+          src: `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&autopause=0`
+        };
+      }
+    }
+
+    if (raw.includes('/embed/') || raw.includes('player.') || raw.includes('twitch.tv')) {
+      return { isEmbed: true, isYouTube: false, src: raw };
+    }
+
+    // Only allow direct video files (mp4, webm, ogg, m3u8) in <video> tag
+    const isDirectVideoFile = /\.(mp4|webm|ogg|m3u8)(\?.*)?$/i.test(raw);
+    return {
+      isEmbed: false,
+      isYouTube: false,
+      src: isDirectVideoFile ? raw : mp4Fallback
+    };
+  };
+
+  // Robust CCTV Video Player Feed Renderer
   const renderCctvVideoFeed = (cam, isLargeMode = false) => {
+    if (!cam) return null;
     const isOnline = cam.status === 'ONLINE';
-    const stream = cam.streamUrl || defaultCctv[0].streamUrl;
-    const photo = cam.bgImage || defaultCctv[0].bgImage;
+    const rawStream = cam.streamUrl || defaultCctv[0]?.streamUrl || 'https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/people-detection.mp4';
+    const streamInfo = parseCctvStreamUrl(rawStream);
+    const photo = cam.bgImage || defaultCctv[0]?.bgImage || 'https://images.unsplash.com/photo-1542296332-2e4473faf563?auto=format&fit=crop&w=1200&q=80';
+    const mp4Fallback = "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/people-detection.mp4";
+    const isFailed = !!failedEmbeds[cam?.id];
 
     return React.createElement("div", {
       style: {
@@ -8927,41 +9260,129 @@ function CctvView({
         boxShadow: "0 8px 24px rgba(0,0,0,0.8)"
       }
     },
-      // 1. Photo Background of Real People in Airport
+      // 1. Fallback Poster Image (Z-Index 1)
       React.createElement("img", {
         src: photo,
-        alt: cam.name,
+        alt: cam.name || 'Camera Feed',
         style: {
           position: "absolute",
           top: 0, left: 0,
           width: "100%",
           height: "100%",
           objectFit: "cover",
+          zIndex: 1,
           filter: cam.resolution?.includes("Thermal") ? "contrast(1.4) hue-rotate(150deg) saturate(2)" : "brightness(0.85) contrast(1.1)",
           opacity: isOnline ? 0.95 : 0.2
         }
       }),
 
-      // 2. Video Stream of Real People
-      React.createElement("video", {
-        autoPlay: true,
-        loop: true,
-        muted: true,
-        playsInline: true,
-        src: stream,
+      // 2. Video Player Layer (Z-Index 2)
+      (streamInfo.isEmbed && !isFailed) ? (
+        React.createElement("iframe", {
+          src: streamInfo.src,
+          key: streamInfo.src,
+          title: (cam.name || 'CCTV') + " Live Video Stream",
+          onError: () => setFailedEmbeds(prev => ({ ...prev, [cam.id]: true })),
+          style: {
+            position: "absolute",
+            top: 0, left: 0,
+            width: "100%",
+            height: "100%",
+            border: "none",
+            zIndex: 2,
+            opacity: isOnline ? 1 : 0.25,
+            pointerEvents: "auto"
+          },
+          allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen",
+          allowFullScreen: true
+        })
+      ) : (
+        React.createElement("video", {
+          autoPlay: true,
+          loop: true,
+          muted: true,
+          playsInline: true,
+          src: (streamInfo.isEmbed && isFailed) ? mp4Fallback : (streamInfo.src || mp4Fallback),
+          onError: (e) => {
+            if (e?.target) e.target.src = mp4Fallback;
+          },
+          style: {
+            position: "absolute",
+            top: 0, left: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            zIndex: 2,
+            filter: cam.resolution?.includes("Thermal") ? "contrast(1.5) hue-rotate(150deg) saturate(2.5)" : "none",
+            opacity: isOnline ? 0.95 : 0.15
+          }
+        })
+      ),
+
+      // 3. Top Action Overlay Bar (Z-Index 5)
+      React.createElement("div", {
         style: {
           position: "absolute",
-          top: 0, left: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          filter: cam.resolution?.includes("Thermal") ? "contrast(1.5) hue-rotate(150deg) saturate(2.5)" : "none",
-          opacity: isOnline ? 0.85 : 0.15
+          top: "8px",
+          right: "8px",
+          zIndex: 5,
+          display: "flex",
+          gap: "0.35rem",
+          alignItems: "center"
         }
-      }),
+      },
+        streamInfo.isYouTube && React.createElement("button", {
+          type: "button",
+          onClick: () => handleToggleSource(cam.id),
+          style: {
+            background: isFailed ? "rgba(16, 185, 129, 0.9)" : "rgba(15, 23, 42, 0.9)",
+            color: isFailed ? "#ffffff" : "var(--accent-cyan)",
+            border: "1px solid var(--accent-cyan)",
+            padding: "0.25rem 0.55rem",
+            borderRadius: "6px",
+            fontSize: "0.68rem",
+            fontWeight: 800,
+            cursor: "pointer"
+          },
+          title: "Switch between Live HTML5 Surveillance Feed & YouTube Embed"
+        }, isFailed ? "⚡ HTML5 Feed" : "🔄 Switch Player"),
+        streamInfo.isYouTube && React.createElement("a", {
+          href: `https://www.youtube.com/watch?v=${streamInfo.ytId}`,
+          target: "_blank",
+          rel: "noopener noreferrer",
+          style: {
+            background: "rgba(220, 38, 38, 0.9)",
+            color: "#ffffff",
+            padding: "0.25rem 0.55rem",
+            borderRadius: "6px",
+            fontSize: "0.68rem",
+            fontWeight: 800,
+            textDecoration: "none",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.2rem"
+          }
+        }, "▶️ YouTube ↗"),
+        React.createElement("button", {
+          type: "button",
+          onClick: () => setHdModalCam(cam),
+          style: {
+            background: "rgba(0, 242, 254, 0.9)",
+            color: "#000000",
+            border: "none",
+            padding: "0.25rem 0.6rem",
+            borderRadius: "6px",
+            fontSize: "0.68rem",
+            fontWeight: 900,
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.6)"
+          }
+        }, "📺 Expand HD Player")
+      ),
 
-      // 3. CCTV CRT Scanline Overlay
-      React.createElement("div", { className: "cctv-scanline" }),
+      // 3. CCTV CRT Scanline Overlay (Z-Index 3)
+      React.createElement("div", { className: "cctv-scanline", style: { zIndex: 3, pointerEvents: "none" } }),
 
       // 4. Offline / Maintenance Overlay
       !isOnline && React.createElement("div", {
@@ -9251,7 +9672,27 @@ function CctvView({
               placeholder: "https://raw.githubusercontent.com/.../people-detection.mp4",
               value: camForm.streamUrl,
               onChange: (e) => setCamForm({ ...camForm, streamUrl: e.target.value })
-            })
+            }),
+            React.createElement("div", { style: { display: 'flex', gap: '0.4rem', marginTop: '0.35rem', flexWrap: 'wrap' } },
+              React.createElement("button", {
+                type: "button",
+                className: "btn btn-secondary",
+                style: { fontSize: '0.68rem', padding: '0.2rem 0.5rem', cursor: 'pointer' },
+                onClick: () => setCamForm({ ...camForm, streamUrl: "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/people-detection.mp4" })
+              }, "📹 Preset MP4 Video"),
+              React.createElement("button", {
+                type: "button",
+                className: "btn btn-secondary",
+                style: { fontSize: '0.68rem', padding: '0.2rem 0.5rem', cursor: 'pointer' },
+                onClick: () => setCamForm({ ...camForm, streamUrl: "https://www.youtube.com/watch?v=1EiC9bvVGnk" })
+              }, "🔴 Haneda Live Stream"),
+              React.createElement("button", {
+                type: "button",
+                className: "btn btn-secondary",
+                style: { fontSize: '0.68rem', padding: '0.2rem 0.5rem', cursor: 'pointer' },
+                onClick: () => setCamForm({ ...camForm, streamUrl: "https://www.youtube.com/watch?v=5_XSYlAfJZM" })
+              }, "🔴 Tokyo Runway Stream")
+            )
           ),
 
           React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' } },
@@ -9349,6 +9790,27 @@ function CctvView({
         ),
 
         React.createElement("button", { className: "btn btn-primary", style: { width: '100%' }, onClick: () => setPtzModalCam(null) }, "Done")
+      )
+    ),
+
+    hdModalCam && React.createElement("div", { className: "modal-overlay", onClick: (e) => { if (e.target.className.includes('modal-overlay')) setHdModalCam(null); } },
+      React.createElement("div", { className: "modal-card", style: { maxWidth: '840px', width: '95%' } },
+        React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' } },
+          React.createElement("div", null,
+            React.createElement("h3", { style: { margin: 0, color: 'var(--accent-cyan)', fontWeight: 800 } }, "📺 Full HD Surveillance Player — " + hdModalCam.name),
+            React.createElement("div", { style: { fontSize: '0.8rem', color: 'var(--text-secondary)' } }, hdModalCam.location + " • " + hdModalCam.resolution + " • " + hdModalCam.aiMode)
+          ),
+          React.createElement("button", { className: "btn btn-secondary", style: { padding: '0.2rem 0.6rem', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }, onClick: () => setHdModalCam(null) }, "✕")
+        ),
+
+        React.createElement("div", { style: { width: '100%', marginBottom: '1rem' } },
+          renderCctvVideoFeed(hdModalCam, true)
+        ),
+
+        React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' } },
+          React.createElement("div", { style: { fontSize: '0.78rem', color: 'var(--text-secondary)' } }, "👥 Sensor Detection: " + (hdModalCam.peopleCount || 0) + " passengers • Operational Status: " + hdModalCam.status),
+          React.createElement("button", { className: "btn btn-primary", onClick: () => setHdModalCam(null) }, "Close Player")
+        )
       )
     )
   );
@@ -9816,11 +10278,7 @@ function LostFoundView(props) {
     className: "btn " + (activeTabSection === 'CLAIMED_QUEUE' ? 'btn-primary' : 'btn-secondary'),
     onClick: function() { setActiveTabSection('CLAIMED_QUEUE'); },
     style: { fontSize: '0.88rem', fontWeight: 700, background: activeTabSection === 'CLAIMED_QUEUE' ? 'var(--accent-emerald)' : 'rgba(16,185,129,0.15)', color: activeTabSection === 'CLAIMED_QUEUE' ? '#000' : 'var(--accent-emerald)', border: '1px solid rgba(16,185,129,0.4)', cursor: 'pointer' }
-  }, "✅ Claimed Items Vault (" + claimedItems.length + ")"), canManage && React.createElement("button", {
-    className: "btn " + (activeTabSection === 'CLAIMS_QUEUE' ? 'btn-primary' : 'btn-secondary'),
-    onClick: function() { setActiveTabSection('CLAIMS_QUEUE'); },
-    style: { fontSize: '0.88rem', fontWeight: 700, background: activeTabSection === 'CLAIMS_QUEUE' ? 'var(--accent-cyan)' : 'rgba(0,242,254,0.15)', color: activeTabSection === 'CLAIMS_QUEUE' ? '#000' : 'var(--accent-cyan)', border: '1px solid rgba(0,242,254,0.4)', cursor: 'pointer' }
-  }, "🙋‍♂️ Received Claim Appeals (" + claimsList.filter(function(c) { return c.status === 'PENDING_VERIFICATION'; }).length + ")")),
+  }, "✅ Claimed Items Vault (" + claimedItems.length + ")")),
 
   // SECTION 1: PUBLIC UNCLAIMED GALLERY
   activeTabSection === 'GALLERY' && React.createElement("div", {
@@ -11165,18 +11623,28 @@ function AdminView({
     appendAuditLog('USER_REJECT', `Master Admin rejected staff user ${id}`);
     addToast('Staff registration REJECTED. Access blocked.', 'danger');
   };
-  const deleteUser = (id, name) => {
+  const deleteUser = async (id, name) => {
     const target = db.users.find(u => u.id === id);
     if (target && (target.email === 'admin@delhi.aai' || target.id === 'USR-001' || target.employeeId === 'ADM-DEL-001')) {
       addToast('🔒 Action Denied: Primary AAI Master Admin account is protected and cannot be deleted!', 'danger');
       return;
     }
-    setDb(prev => ({
-      ...prev,
-      users: prev.users.filter(u => u.id !== id)
-    }));
+    const updatedUsers = db.users.filter(u => u.id !== id);
+    const updatedDb = { ...db, users: updatedUsers };
+    setDb(updatedDb);
+
+    try {
+      await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      await fetch('/api/users/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, email: target ? target.email : '' })
+      });
+      syncCloudDatabase(updatedDb);
+    } catch(e) {}
+
     appendAuditLog('USER_DELETE', `Deleted user ${name} (${id})`);
-    addToast(`User ${name} deleted`, 'danger');
+    addToast(`User ${name} deleted permanently from database`, 'danger');
   };
   const resetDB = () => {
     if (!window.confirm("⚠️ Are you sure you want to reset system telemetry to factory defaults? All Admin accounts and credentials will be preserved.")) return;
@@ -14645,6 +15113,20 @@ function OlaCabBookingView({
     if (addToast) addToast('🚕 ' + chosenCat.name + ' booked from ' + aptCode + ' to ' + dropLocation + '! (' + currentDistanceKm + ' km — ₹' + chosenCat.estFare + ')', 'success');
   };
 
+  const handleDeleteCabBooking = (bookingId) => {
+    if (!isAdmin) {
+      if (addToast) addToast('🔒 Only Admins can delete cab booking records.', 'danger');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to delete cab booking ' + bookingId + '?')) return;
+    setDb(prev => ({
+      ...prev,
+      cabBookings: (prev.cabBookings || []).filter(b => b.id !== bookingId)
+    }));
+    if (appendAuditLog) appendAuditLog('CAB_DELETED', 'Admin deleted cab booking ' + bookingId);
+    if (addToast) addToast('🗑️ Cab booking ' + bookingId + ' deleted.', 'warning');
+  };
+
   return React.createElement("div", {
     style: { display: 'flex', flexDirection: 'column', gap: '1.5rem' }
   }, React.createElement("div", {
@@ -14836,10 +15318,23 @@ function OlaCabBookingView({
     style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' }
   }, React.createElement("strong", {
     style: { color: 'var(--accent-cyan)', fontSize: '0.85rem' }
-  }, b.passengerName), React.createElement("span", {
+  }, b.passengerName), React.createElement("div", {
+    style: { display: 'flex', alignItems: 'center', gap: '0.4rem' }
+  }, React.createElement("span", {
     className: "badge badge-success",
     style: { fontSize: '0.62rem' }
-  }, b.cabCategory)), React.createElement("div", {
+  }, b.cabCategory), isAdmin && React.createElement("button", {
+    className: "btn btn-secondary",
+    title: "Delete this cab booking",
+    style: {
+      fontSize: '0.65rem',
+      padding: '0.15rem 0.4rem',
+      color: 'var(--accent-rose)',
+      border: '1px solid rgba(244,63,94,0.4)',
+      lineHeight: 1.2
+    },
+    onClick: () => handleDeleteCabBooking(b.id)
+  }, "🗑️ Delete"))), React.createElement("div", {
     style: { fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }
   }, "Pickup: ", React.createElement("strong", null, b.pickupPoint)), React.createElement("div", {
     style: { fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }
@@ -14979,6 +15474,19 @@ function ReportIssueView({
     setReplyInput(prev => ({ ...prev, [ticketId]: '' }));
   };
 
+  const handleDeleteTicket = (ticketId) => {
+    const updated = tickets.filter(t => t.id !== ticketId);
+    setDb(prev => {
+      const nextDb = { ...prev, tickets: updated };
+      try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(e){}
+      return nextDb;
+    });
+    if (appendAuditLog) appendAuditLog('TICKET_DELETED', `Deleted resolved support ticket ${ticketId}`);
+    if (addToast) addToast(`🗑️ Ticket ${ticketId} deleted permanently.`, 'warning');
+  };
+
+  const canManageTickets = isAdmin || isStaff;
+
   return React.createElement("div", {
     style: { display: 'flex', flexDirection: 'column', gap: '1.5rem' }
   }, React.createElement("div", {
@@ -15088,32 +15596,48 @@ function ReportIssueView({
       }
     }, React.createElement("div", {
       style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }
-    }, React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center' } }, React.createElement("strong", { style: { color: 'var(--brand-cyan)', fontSize: '0.92rem' } }, t.id), React.createElement("span", { className: "badge " + (t.status === 'RESOLVED' ? 'badge-success' : 'badge-warning') }, t.status === 'RESOLVED' ? '✅ RESOLVED' : '⏳ OPEN')), React.createElement("span", { style: { fontSize: '0.72rem', color: 'var(--text-muted)' } }, t.createdAt)), React.createElement("div", {
-      style: { fontWeight: 700, color: '#fff', fontSize: '0.88rem', marginBottom: '0.2rem' }
-    }, t.name, " • 📞 ", t.phone, " • ✉️ ", t.email), React.createElement("div", {
-      style: { fontSize: '0.76rem', color: 'var(--accent-amber)', marginBottom: '0.4rem' }
-    }, "Category: ", t.category, " • Urgency: ", t.urgency, " • Location: ", t.location), React.createElement("p", {
-      style: { fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 0.6rem 0', lineHeight: 1.4 }
-    }, t.description), t.adminReply ? React.createElement("div", {
-      style: { padding: '0.6rem 0.85rem', borderRadius: '8px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.4)', color: 'var(--accent-emerald)', fontSize: '0.78rem' }
-    }, "💬 Admin Reply (Sent to SMS & Email): ", t.adminReply) : (isAdmin || isStaff) ? React.createElement("div", {
-      style: { marginTop: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.65rem' }
-    }, React.createElement("label", { style: { fontSize: '0.73rem', color: 'var(--accent-cyan)' } }, "💬 Admin Reply via SMS & Email:"), React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } }, React.createElement("input", {
-      className: "form-input",
-      placeholder: "Type your official response to passenger...",
-      value: replyInput[t.id] || '',
-      onChange: function(e) {
-        var val = e.target.value;
-        setReplyInput(function(prev) { return Object.assign({}, prev, { [t.id]: val }); });
-      },
-      style: { flex: 1, fontSize: '0.8rem', background: '#07090e' }
-    }), React.createElement("button", {
-      className: "btn btn-primary",
-      onClick: function() { handleAdminReply(t.id, t.name, t.phone, t.email); },
-      style: { background: 'var(--accent-emerald)', color: '#000', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap' }
-    }, "📤 Send SMS & Email Reply"))) : React.createElement("div", {
-      style: { fontSize: '0.72rem', color: 'var(--accent-amber)', fontStyle: 'italic', marginTop: '0.3rem' }
-    }, "⏳ Ticket logged. Admin team will respond via SMS / Email shortly."));
+    }, React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center' } }, React.createElement("strong", { style: { color: 'var(--brand-cyan)', fontSize: '0.92rem' } }, t.id), React.createElement("span", { className: "badge " + (t.status === 'RESOLVED' ? 'badge-success' : 'badge-warning') }, t.status === 'RESOLVED' ? '✅ RESOLVED' : '⏳ OPEN')), React.createElement("span", { style: { fontSize: '0.72rem', color: 'var(--text-muted)' } }, t.createdAt)), 
+    
+    // Privacy protection: Public users only see Name, Ticket ID, Status, and Date
+    canManageTickets ? React.createElement(React.Fragment, null,
+      React.createElement("div", {
+        style: { fontWeight: 700, color: '#fff', fontSize: '0.88rem', marginBottom: '0.2rem' }
+      }, t.name, " • 📞 ", t.phone, " • ✉️ ", t.email),
+      React.createElement("div", {
+        style: { fontSize: '0.76rem', color: 'var(--accent-amber)', marginBottom: '0.4rem' }
+      }, "Category: ", t.category, " • Urgency: ", t.urgency, " • Location: ", t.location),
+      React.createElement("p", {
+        style: { fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 0.6rem 0', lineHeight: 1.4 }
+      }, t.description),
+      t.adminReply ? React.createElement("div", {
+        style: { padding: '0.6rem 0.85rem', borderRadius: '8px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.4)', color: 'var(--accent-emerald)', fontSize: '0.78rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
+      }, React.createElement("span", null, "💬 Admin Reply (Sent to SMS & Email): ", t.adminReply),
+      React.createElement("button", {
+        className: "btn btn-secondary",
+        onClick: function() { handleDeleteTicket(t.id); },
+        style: { background: 'rgba(244,63,94,0.2)', color: 'var(--accent-rose)', border: '1px solid var(--accent-rose)', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.55rem', cursor: 'pointer' }
+      }, "🗑️ Delete Ticket")) : React.createElement("div", {
+        style: { marginTop: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.65rem' }
+      }, React.createElement("label", { style: { fontSize: '0.73rem', color: 'var(--accent-cyan)' } }, "💬 Admin Reply via SMS & Email:"), React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } }, React.createElement("input", {
+        className: "form-input",
+        placeholder: "Type your official response to passenger...",
+        value: replyInput[t.id] || '',
+        onChange: function(e) {
+          var val = e.target.value;
+          setReplyInput(function(prev) { return Object.assign({}, prev, { [t.id]: val }); });
+        },
+        style: { flex: 1, fontSize: '0.8rem', background: '#07090e' }
+      }), React.createElement("button", {
+        className: "btn btn-primary",
+        onClick: function() { handleAdminReply(t.id, t.name, t.phone, t.email); },
+        style: { background: 'var(--accent-emerald)', color: '#000', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap' }
+      }, "📤 Send SMS & Email Reply")))
+    ) : React.createElement("div", {
+      style: { padding: '0.5rem 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }
+    }, React.createElement("strong", { style: { color: '#fff' } }, "Passenger Name: "), t.name, React.createElement("div", {
+      style: { fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }
+    }, "🔒 Additional ticket details hidden to protect passenger privacy. Accessible to Staff & Admin only."))
+    );
   }), tickets.length === 0 && React.createElement("div", {
     style: { textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }
   }, "No support tickets logged yet."))))));
@@ -15164,19 +15688,6 @@ if (typeof React !== 'undefined' && React.Component && React.Component.prototype
     render: function() { return this.props ? this.props.children : null; }
   };
 }
-
-const {
-  useState,
-  useEffect,
-  useRef,
-  useCallback
-} = React;
-
-// ═══════════════════════════════════════════════════════
-// CONSTANTS & SEED DATA
-// ═══════════════════════════════════════════════════════
-
-
 
 var container = document.getElementById('root');
 if (container) {

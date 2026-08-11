@@ -1,0 +1,13 @@
+[package]
+name = "smart-airport-management-system-aryamann-khare"
+version = "3.5.0"
+description = "AAI AeroPulse OS - Smart Airport Operations & Telemetry Platform for Wasmer Cloud"
+
+[dependencies]
+
+[[command]]
+name = "server"
+module = "node"
+
+[node]
+main = "server.js"

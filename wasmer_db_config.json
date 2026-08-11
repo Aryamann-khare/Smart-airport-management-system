@@ -1,0 +1,10 @@
+{
+  "host": "db.fr-roub1.bengt.wasmernet.com",
+  "port": 20184,
+  "database": "smart",
+  "user": "user_4c375953",
+  "password": "pw_HIkhyS1CEhUotu79mNWNSFEeQonpjqQh",
+  "ssl": {
+    "rejectUnauthorized": false
+  }
+}
