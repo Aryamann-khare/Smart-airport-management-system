@@ -1014,7 +1014,7 @@ const SEED = {
     pnrNumber: "PNR-DEL-7781",
     mobileNumber: "+91 9876543210",
     timestamp: "08:15 IST",
-    status: "DISPATCHED"
+    status: "PENDING"
   }, {
     id: "WC-002",
     passengerName: "Mohammad Iqbal",
@@ -2238,8 +2238,7 @@ async function fetchCloudDatabase() {
     const res = await fetch('/api/db');
     if (res.ok) {
       const data = await res.json();
-      if (data && data.success && Array.isArray(data.users) && data.users.length > 0) {
-        console.log('📁 Loaded database state from Local Disk Engine!');
+      if (data && data.success) {
         return data;
       }
     }
@@ -2255,7 +2254,7 @@ async function syncCloudDatabase(dbData) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ payload: dbData })
     });
-    console.log('💾 Database state synced to Local Disk Engine!');
+    console.log('💾 Database state synced to Wasmer Cloud Engine!');
   } catch(e) {}
 
   if (dbData && dbData.users) {
@@ -2264,6 +2263,28 @@ async function syncCloudDatabase(dbData) {
   }
 }
 
+function getActionableState(data) {
+  if (!data || typeof data !== 'object') return '';
+  return JSON.stringify({
+    users: data.users || [],
+    flights: data.flights || [],
+    gates: data.gates || [],
+    cctv: data.cctv || [],
+    emergencies: data.emergencies || [],
+    wheelchairRequests: data.wheelchairRequests || [],
+    tickets: data.tickets || [],
+    fleetHealth: data.fleetHealth || [],
+    parkingData: data.parkingData || {},
+    cabBookings: data.cabBookings || [],
+    baggage: data.baggage || [],
+    lostFoundItems: data.lostFoundItems || [],
+    lostFoundClaims: data.lostFoundClaims || [],
+    dutyRosters: data.dutyRosters || [],
+    staffShifts: data.staffShifts || [],
+    leaveApplications: data.leaveApplications || [],
+    attendanceLogs: data.attendanceLogs || []
+  });
+}
 
 function getSyncedDbForAirport(rawDb, apt) {
   if (!rawDb || !apt) return rawDb;
@@ -2309,10 +2330,9 @@ function getSyncedDbForAirport(rawDb, apt) {
   });
 
   // 4. Sync Parking Lots
-  const syncedParkingLots = (rawDb.parkingData?.lots || []).map((lot, idx) => ({
+  const syncedParkingLots = (rawDb.parkingData?.lots || []).map((lot) => ({
     ...lot,
-    id: `LOT-${aptCode}-0${idx + 1}`,
-    name: `${lot.name ? lot.name.replace(/Terminal\s*\d*/gi, '').trim() : 'Car Park'} — ${aptCity} Airport`
+    id: lot.id || 'MLCP-T3'
   }));
 
   // 5. Sync Cab Bookings
@@ -2357,6 +2377,7 @@ function getSyncedDbForAirport(rawDb, apt) {
 
 function App() {
   const [db, setDb] = useState(loadDB());
+  const lastSyncedActionableRef = React.useRef(getActionableState(db));
   const [lang, setLang] = useState('en');
   const [activeAirport, setActiveAirport] = useState(() => {
     try {
@@ -2460,10 +2481,9 @@ function App() {
       fetchCloudDatabase().then(cloudDb => {
         if (cloudDb && typeof cloudDb === 'object') {
           setDb(prev => {
-            const mergedUsers = (Array.isArray(cloudDb.users) && cloudDb.users.length > 0) ? cloudDb.users : prev.users;
             const merged = {
               ...prev,
-              users: mergedUsers,
+              users: Array.isArray(cloudDb.users) ? cloudDb.users : prev.users,
               tickets: Array.isArray(cloudDb.tickets) ? cloudDb.tickets : prev.tickets,
               wheelchairRequests: Array.isArray(cloudDb.wheelchairRequests) ? cloudDb.wheelchairRequests : prev.wheelchairRequests,
               lostFoundItems: Array.isArray(cloudDb.lostFoundItems) ? cloudDb.lostFoundItems : prev.lostFoundItems,
@@ -2482,6 +2502,8 @@ function App() {
               baggage: Array.isArray(cloudDb.baggage) ? cloudDb.baggage : prev.baggage,
               auditLogs: Array.isArray(cloudDb.auditLogs) ? cloudDb.auditLogs : prev.auditLogs
             };
+            const newActionable = getActionableState(merged);
+            lastSyncedActionableRef.current = newActionable;
             try { localStorage.setItem(DB_KEY, JSON.stringify(merged)); } catch(e){}
             return merged;
           });
@@ -2494,9 +2516,13 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Sync to Wasmer Cloud DB on ANY db state change across all modules
+  // Sync to Wasmer Cloud DB ONLY when actionable data actually changes (prevents 5s metric timer overwrites!)
   useEffect(() => {
-    syncCloudDatabase(db);
+    const currentActionable = getActionableState(db);
+    if (currentActionable !== lastSyncedActionableRef.current) {
+      lastSyncedActionableRef.current = currentActionable;
+      syncCloudDatabase(db);
+    }
     try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch(e){}
   }, [db]);
   const addToast = (msg, type = 'info') => {
@@ -10036,14 +10062,17 @@ function LostFoundView(props) {
     setActiveTabSection('PENDING_QUEUE');
   };
 
-  // Staff Approve Pending Review Item
+  // Staff Approve Pending Review Item or Claim Appeal
   var handleApproveReport = function(itemId, itemTitle, isClaimPending) {
     var nextStatus = isClaimPending ? 'CLAIMED' : 'UNCLAIMED';
-    var updated = items.map(function(item) {
-      return item.id === itemId ? Object.assign({}, item, { status: nextStatus, claimPending: false }) : item;
+    var updatedItems = items.map(function(item) {
+      return item.id === itemId ? Object.assign({}, item, { status: nextStatus, claimPending: false, pendingClaimant: '' }) : item;
+    });
+    var updatedClaims = claimsList.map(function(c) {
+      return c.itemId === itemId ? Object.assign({}, c, { status: 'APPROVED' }) : c;
     });
     setDb(function(prev) {
-      var nextDb = Object.assign({}, prev, { lostFoundItems: updated });
+      var nextDb = Object.assign({}, prev, { lostFoundItems: updatedItems, lostFoundClaims: updatedClaims });
       try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(err){}
       return nextDb;
     });
@@ -10051,7 +10080,23 @@ function LostFoundView(props) {
     if (addToast) addToast('✅ Approved ' + itemTitle + '! Status set to ' + nextStatus + '.', 'success');
   };
 
-  // Staff Reject Pending Review Item
+  // Staff Reject Pending Review Item or Claim Appeal
+  var handleRejectReport = function(itemId, itemTitle, isClaimPending) {
+    var nextStatus = isClaimPending ? 'UNCLAIMED' : 'REJECTED';
+    var updatedItems = items.map(function(item) {
+      return item.id === itemId ? Object.assign({}, item, { status: nextStatus, claimPending: false, pendingClaimant: '' }) : item;
+    });
+    var updatedClaims = claimsList.map(function(c) {
+      return c.itemId === itemId ? Object.assign({}, c, { status: 'REJECTED' }) : c;
+    });
+    setDb(function(prev) {
+      var nextDb = Object.assign({}, prev, { lostFoundItems: updatedItems, lostFoundClaims: updatedClaims });
+      try { localStorage.setItem(DB_KEY, JSON.stringify(nextDb)); } catch(err){}
+      return nextDb;
+    });
+    if (appendAuditLog) appendAuditLog('LOST_FOUND_REJECTED', 'Rejected item ' + itemTitle + ' -> ' + nextStatus);
+    if (addToast) addToast('❌ Rejected ' + itemTitle + '. Returned to ' + nextStatus + '.', 'warning');
+  };
   var handleRejectReport = function(itemId, itemTitle, isClaimPending) {
     var nextStatus = isClaimPending ? 'UNCLAIMED' : 'REJECTED';
     var updated = items.map(function(item) {
@@ -10364,11 +10409,14 @@ function LostFoundView(props) {
   activeTabSection === 'PENDING_QUEUE' && React.createElement("div", {
     style: { display: 'flex', flexDirection: 'column', gap: '1rem' }
   }, React.createElement("h3", { style: { color: 'var(--accent-amber)', margin: 0, fontSize: '1.1rem' } }, "⏳ Items & Claim Appeals Awaiting Staff Verification (" + pendingReviewItems.length + ")"), pendingReviewItems.map(function(item) {
+    var claimDetails = claimsList.find(function(c) { return c.itemId === item.id; });
     return React.createElement("div", {
       key: item.id,
       className: "glass-card",
-      style: { borderLeft: '4px solid var(--accent-amber)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }
-    }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.25rem' } }, React.createElement("span", { className: "badge " + (item.claimPending ? 'badge-info' : item.type === 'LOST' ? 'badge-warning' : 'badge-success') }, item.claimPending ? '🙋‍♂️ CLAIM VERIFICATION UNDER REVIEW' : item.type === 'LOST' ? '🔴 LOST REPORT REVIEW' : '🟢 FOUND REPORT REVIEW'), React.createElement("strong", { style: { color: '#fff', fontSize: '0.95rem' } }, item.title)), React.createElement("div", { style: { fontSize: '0.78rem', color: 'var(--text-secondary)' } }, item.claimPending ? "Claimant: " + (item.pendingClaimant || 'Passenger') + " • Status: Claim Appeal Received" : "Reported by: " + item.reporter + " (" + (item.contactInfo || 'No Contact') + ") • Date: " + item.date), React.createElement("div", { style: { fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' } }, "Location: ", item.location, " — ", item.description)), canManage ? React.createElement("div", { style: { display: 'flex', gap: '0.5rem' } }, React.createElement("button", {
+      style: { borderLeft: '4px solid var(--accent-amber)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }
+    }, React.createElement("div", {
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }
+    }, React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.25rem' } }, React.createElement("span", { className: "badge " + (item.claimPending ? 'badge-info' : item.type === 'LOST' ? 'badge-warning' : 'badge-success') }, item.claimPending ? '🙋‍♂️ CLAIM VERIFICATION UNDER REVIEW' : item.type === 'LOST' ? '🔴 LOST REPORT REVIEW' : '🟢 FOUND REPORT REVIEW'), React.createElement("strong", { style: { color: '#fff', fontSize: '0.98rem' } }, item.title)), React.createElement("div", { style: { fontSize: '0.8rem', color: 'var(--accent-cyan)', marginTop: '0.2rem' } }, "📍 Location: " + item.location + " • Date: " + item.date), React.createElement("p", { style: { fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.3rem 0 0 0', lineHeight: '1.4' } }, item.description)), canManage ? React.createElement("div", { style: { display: 'flex', gap: '0.5rem', alignItems: 'center' } }, React.createElement("button", {
       className: "btn btn-primary",
       onClick: function() { handleApproveReport(item.id, item.title, item.claimPending); },
       style: { background: 'var(--accent-emerald)', color: '#000', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }
@@ -10378,7 +10426,29 @@ function LostFoundView(props) {
       style: { color: 'var(--accent-rose)', border: '1px solid var(--accent-rose)', fontSize: '0.8rem', cursor: 'pointer' }
     }, "❌ Reject")) : React.createElement("div", {
       style: { fontSize: '0.78rem', color: 'var(--accent-amber)', background: 'rgba(245,158,11,0.15)', padding: '0.4rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(245,158,11,0.3)' }
-    }, "⏳ Under Staff & Admin Verification Review"));
+    }, "⏳ Under Staff & Admin Verification Review")), 
+
+    // CLAIM APPEAL DETAILS VAULT BOX FOR STAFF/ADMIN
+    item.claimPending && React.createElement("div", {
+      style: {
+        background: 'rgba(15, 23, 42, 0.95)',
+        border: '1px solid var(--accent-cyan)',
+        borderRadius: '8px',
+        padding: '0.85rem 1rem',
+        marginTop: '0.25rem'
+      }
+    }, React.createElement("div", {
+      style: { fontSize: '0.82rem', color: 'var(--accent-cyan)', fontWeight: 800, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }
+    }, "📑 Claim Ownership Appeal Dossier Details"), React.createElement("div", {
+      className: "grid-2",
+      style: { gap: '0.75rem', fontSize: '0.8rem' }
+    }, React.createElement("div", null, React.createElement("span", { style: { color: 'var(--text-muted)' } }, "Claimant Name: "), React.createElement("strong", { style: { color: '#fff' } }, claimDetails ? claimDetails.claimantName : (item.pendingClaimant || 'Passenger'))), React.createElement("div", null, React.createElement("span", { style: { color: 'var(--text-muted)' } }, "Contact Phone/Email: "), React.createElement("strong", { style: { color: 'var(--accent-amber)' } }, claimDetails ? claimDetails.claimantContact : 'Unlisted')), React.createElement("div", null, React.createElement("span", { style: { color: 'var(--text-muted)' } }, "Flight Number: "), React.createElement("strong", { style: { color: '#fff' } }, (claimDetails && claimDetails.flightNo) ? claimDetails.flightNo : 'N/A')), React.createElement("div", null, React.createElement("span", { style: { color: 'var(--text-muted)' } }, "Submitted On: "), React.createElement("strong", { style: { color: '#fff' } }, (claimDetails && claimDetails.timestamp) ? claimDetails.timestamp : 'Recent'))), React.createElement("div", {
+      style: { marginTop: '0.5rem', fontSize: '0.8rem' }
+    }, React.createElement("span", { style: { color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' } }, "Proof of Ownership Details:"), React.createElement("div", {
+      style: { background: 'rgba(0,0,0,0.4)', padding: '0.5rem 0.75rem', borderRadius: '6px', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.06)', lineHeight: '1.4' }
+    }, claimDetails ? claimDetails.proofDetails : 'Standard proof provided')), claimDetails && claimDetails.mediaUrl && React.createElement("div", {
+      style: { marginTop: '0.5rem' }
+    }, React.createElement("span", { style: { color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block', marginBottom: '0.2rem' } }, "Attachment Photo/Video Proof:"), claimDetails.mediaType === 'video' ? React.createElement("video", { src: claimDetails.mediaUrl, controls: true, style: { maxWidth: '240px', maxHeight: '140px', borderRadius: '6px' } }) : React.createElement("img", { src: claimDetails.mediaUrl, alt: "Proof", style: { maxWidth: '240px', maxHeight: '140px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--accent-cyan)' } }))));
   }), pendingReviewItems.length === 0 && React.createElement("div", {
     className: "glass-card",
     style: { textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }
@@ -10463,13 +10533,13 @@ function WheelchairView({
       id: `WC-${Date.now().toString().slice(-3)}`,
       ...wcForm,
       timestamp: new Date().toLocaleTimeString() + ' IST',
-      status: 'DISPATCHED'
+      status: 'PENDING'
     };
     setDb(prev => ({
       ...prev,
       wheelchairRequests: [req, ...prev.wheelchairRequests]
     }));
-    appendAuditLog('WHEELCHAIR_DISPATCH', `Dispatched wheelchair for ${wcForm.passengerName}`);
+    appendAuditLog('WHEELCHAIR_REQUEST', `Raised wheelchair request for ${wcForm.passengerName} (Status: PENDING)`);
     setShowAddModal(false);
     setWcForm({
       passengerName: '',
@@ -10477,7 +10547,7 @@ function WheelchairView({
       pnrNumber: `PNR-${aptCode}-`,
       mobileNumber: ''
     });
-    addToast(`♿ Wheelchair dispatched for ${wcForm.passengerName}`, 'success');
+    addToast(`♿ Wheelchair Assistance Request raised for ${wcForm.passengerName}! Status set to PENDING staff dispatch.`, 'success');
   };
   const updateStatus = (id, newStatus, passenger) => {
     setDb(prev => ({
@@ -12766,7 +12836,13 @@ function CarParkingView({
     eventType: 'ENTRY',
     gateId: 'GATE-T3-ANPR-01'
   });
-  const lots = db.parkingData?.lots || [];
+  const defaultParkingLots = [
+    { id: "MLCP-T3", name: "Multi-Level Car Parking (MLCP) - Terminal 3", type: "Multi-Level (Covered & EV Charging)", total4w: 4500, filled4w: 3120, reserved4w: 450, total2w: 2000, filled2w: 1240, reserved2w: 210, status: "OPEN" },
+    { id: "LOT-T1-A", name: "Surface Premium Lot - Terminal 1", type: "Open Surface (Valet & FastTag)", total4w: 1800, filled4w: 1450, reserved4w: 180, total2w: 1500, filled2w: 980, reserved2w: 150, status: "OPEN" },
+    { id: "LOT-T2", name: "Short-Term Express Lot - Terminal 2", type: "Surface Covered", total4w: 1200, filled4w: 920, reserved4w: 100, total2w: 800, filled2w: 510, reserved2w: 80, status: "OPEN" },
+    { id: "LOT-CARGO", name: "Commercial & Cargo Vehicle Yard", type: "Heavy Vehicle & Truck Yard", total4w: 800, filled4w: 410, reserved4w: 50, total2w: 300, filled2w: 110, reserved2w: 30, status: "OPEN" }
+  ];
+  const lots = (Array.isArray(db.parkingData?.lots) && db.parkingData.lots.length > 0) ? db.parkingData.lots : defaultParkingLots;
   const rates = db.parkingData?.rates || {
     fourWheeler: [],
     twoWheeler: []

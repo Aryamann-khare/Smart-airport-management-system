@@ -83,6 +83,9 @@ try {
             total4w INT,
             filled4w INT,
             reserved4w INT,
+            total2w INT,
+            filled2w INT,
+            reserved2w INT,
             status VARCHAR(64)
           )
         `);
@@ -99,7 +102,28 @@ try {
             amountPaid DECIMAL(10,2),
             paymentStatus VARCHAR(64),
             passengerName VARCHAR(255),
-            mobile VARCHAR(64)
+            mobile VARCHAR(64),
+            startDate VARCHAR(64),
+            paymentMode VARCHAR(64),
+            terminal VARCHAR(64),
+            qrCode VARCHAR(128)
+          )
+        `);
+
+        // 5b. Parking Vehicle Movement Logs Table
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS parking_vehicle_logs (
+            id VARCHAR(64) PRIMARY KEY,
+            timestamp VARCHAR(128),
+            hoursAgo DECIMAL(10,2),
+            vehicleNumber VARCHAR(64),
+            vehicleType VARCHAR(64),
+            parkingLot VARCHAR(255),
+            eventType VARCHAR(64),
+            gateId VARCHAR(64),
+            cameraSensor VARCHAR(128),
+            confidenceScore VARCHAR(64),
+            status VARCHAR(64)
           )
         `);
 
@@ -145,7 +169,8 @@ try {
             origin VARCHAR(128),
             destination VARCHAR(128),
             weight VARCHAR(64),
-            status VARCHAR(64)
+            status VARCHAR(64),
+            steps TEXT
           )
         `);
 
@@ -161,7 +186,26 @@ try {
             description TEXT,
             status VARCHAR(64),
             reporter VARCHAR(255),
-            contactInfo VARCHAR(255)
+            contactInfo VARCHAR(255),
+            claimPending VARCHAR(32),
+            pendingClaimant VARCHAR(255)
+          )
+        `);
+
+        // 9b. Lost & Found Claim Appeals Table
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS lost_found_claims (
+            id VARCHAR(64) PRIMARY KEY,
+            itemId VARCHAR(64),
+            itemTitle VARCHAR(255),
+            claimantName VARCHAR(255),
+            claimantContact VARCHAR(255),
+            flightNo VARCHAR(64),
+            proofDetails TEXT,
+            mediaUrl TEXT,
+            mediaType VARCHAR(64),
+            status VARCHAR(64),
+            timestamp VARCHAR(128)
           )
         `);
 
@@ -174,7 +218,8 @@ try {
             pnrNumber VARCHAR(64),
             mobileNumber VARCHAR(64),
             timestamp VARCHAR(128),
-            status VARCHAR(64)
+            status VARCHAR(64),
+            pickupLocation VARCHAR(255)
           )
         `);
 
@@ -199,14 +244,15 @@ try {
         await pool.query(`
           CREATE TABLE IF NOT EXISTS fleet_vehicles (
             id VARCHAR(64) PRIMARY KEY,
-            name VARCHAR(255),
-            type VARCHAR(64),
+            aircraft VARCHAR(255),
+            flight VARCHAR(255),
             status VARCHAR(64),
-            batteryPct INT,
-            fuelPct INT,
-            location VARCHAR(255),
-            driver VARCHAR(255),
-            healthScore INT
+            engine VARCHAR(64),
+            hydraulic VARCHAR(64),
+            tyre VARCHAR(64),
+            brake VARCHAR(64),
+            fuel VARCHAR(64),
+            nextMaint VARCHAR(64)
           )
         `);
 
@@ -302,6 +348,48 @@ try {
             status VARCHAR(64)
           )
         `);
+
+        // Auto-migrate missing columns for pre-existing tables
+        const alterStmts = [
+          'ALTER TABLE fleet_vehicles ADD COLUMN aircraft VARCHAR(255)',
+          'ALTER TABLE fleet_vehicles ADD COLUMN flight VARCHAR(255)',
+          'ALTER TABLE fleet_vehicles ADD COLUMN engine VARCHAR(64)',
+          'ALTER TABLE fleet_vehicles ADD COLUMN hydraulic VARCHAR(64)',
+          'ALTER TABLE fleet_vehicles ADD COLUMN tyre VARCHAR(64)',
+          'ALTER TABLE fleet_vehicles ADD COLUMN brake VARCHAR(64)',
+          'ALTER TABLE fleet_vehicles ADD COLUMN nextMaint VARCHAR(64)',
+          'ALTER TABLE baggage ADD COLUMN steps TEXT',
+          'ALTER TABLE lost_found_items ADD COLUMN claimPending VARCHAR(32)',
+          'ALTER TABLE lost_found_items ADD COLUMN pendingClaimant VARCHAR(255)',
+          'ALTER TABLE parking_lots ADD COLUMN total2w INT',
+          'ALTER TABLE parking_lots ADD COLUMN filled2w INT',
+          'ALTER TABLE parking_lots ADD COLUMN reserved2w INT',
+          'ALTER TABLE parking_reservations ADD COLUMN startDate VARCHAR(64)',
+          'ALTER TABLE parking_reservations ADD COLUMN paymentMode VARCHAR(64)',
+          'ALTER TABLE parking_reservations ADD COLUMN terminal VARCHAR(64)',
+          'ALTER TABLE parking_reservations ADD COLUMN qrCode VARCHAR(128)',
+          'ALTER TABLE wheelchair_requests ADD COLUMN pickupLocation VARCHAR(255)'
+        ];
+        for (const stmt of alterStmts) {
+          try { await pool.query(stmt); } catch (e) { /* Column already exists */ }
+        }
+
+        const defaultLotsSeed = [
+          { id: "MLCP-T3", name: "Multi-Level Car Parking (MLCP) - Terminal 3", type: "Multi-Level (Covered & EV Charging)", total4w: 4500, filled4w: 3120, reserved4w: 450, total2w: 2000, filled2w: 1240, reserved2w: 210, status: "OPEN" },
+          { id: "LOT-T1-A", name: "Surface Premium Lot - Terminal 1", type: "Open Surface (Valet & FastTag)", total4w: 1800, filled4w: 1450, reserved4w: 180, total2w: 1500, filled2w: 980, reserved2w: 150, status: "OPEN" },
+          { id: "LOT-T2", name: "Short-Term Express Lot - Terminal 2", type: "Surface Covered", total4w: 1200, filled4w: 920, reserved4w: 100, total2w: 800, filled2w: 510, reserved2w: 80, status: "OPEN" },
+          { id: "LOT-CARGO", name: "Commercial & Cargo Vehicle Yard", type: "Heavy Vehicle & Truck Yard", total4w: 800, filled4w: 410, reserved4w: 50, total2w: 300, filled2w: 110, reserved2w: 30, status: "OPEN" }
+        ];
+        const [existingLotRows] = await pool.query('SELECT count(*) as cnt FROM parking_lots');
+        if (!existingLotRows || Number(existingLotRows[0].cnt) === 0) {
+          for (const l of defaultLotsSeed) {
+            await pool.query(
+              'INSERT INTO parking_lots (id, name, type, total4w, filled4w, reserved4w, total2w, filled2w, reserved2w, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [l.id, l.name, l.type, l.total4w, l.filled4w, l.reserved4w, l.total2w, l.filled2w, l.reserved2w, l.status]
+            );
+          }
+          console.log('✅ Auto-seeded 4 default parking lots into Wasmer MySQL!');
+        }
 
         console.log('✅ Created & Verified all 19 relational tables in Wasmer MySQL database smart!');
       }
@@ -414,16 +502,28 @@ function saveDiskUsers(usersList) {
   fs.writeFileSync(mongoPath, JSON.stringify(mongoData, null, 2), 'utf8');
 }
 
+// Helper: Filter unique items by ID to prevent MySQL primary key conflicts
+function filterUniqueById(arr) {
+  if (!Array.isArray(arr)) return [];
+  const seen = new Set();
+  return arr.filter(item => {
+    if (!item || typeof item !== 'object') return false;
+    const id = item.id || JSON.stringify(item);
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
 // Sync helper for relational tables in Wasmer MySQL database `smart`
 async function syncRelationalTables(payload) {
   if (!pool || !payload || typeof payload !== 'object') return;
 
   try {
     // 1. Sync Flights
-    const flightsList = Array.isArray(payload.flights) ? payload.flights : [];
-    if (flightsList.length > 0) {
+    if (Array.isArray(payload.flights)) {
       await pool.query('DELETE FROM flights');
-      for (const f of flightsList) {
+      for (const f of filterUniqueById(payload.flights)) {
         await pool.query(
           `INSERT INTO flights (id, flightNumber, airline, type, origin, destination, scheduledTime, estimatedTime, terminal, gate, status, pax, maxPax, bags, aircraft)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -433,10 +533,9 @@ async function syncRelationalTables(payload) {
     }
 
     // 2. Sync Gates
-    const gatesList = Array.isArray(payload.gates) ? payload.gates : [];
-    if (gatesList.length > 0) {
+    if (Array.isArray(payload.gates)) {
       await pool.query('DELETE FROM gates');
-      for (const g of gatesList) {
+      for (const g of filterUniqueById(payload.gates)) {
         await pool.query(
           `INSERT INTO gates (id, terminal, status, flight, type, pax, compat) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [g.id, g.terminal || 'T3', g.status || 'AVAILABLE', g.flight || '', g.type || 'International', g.pax || 0, g.compat || 'A320/A350/B787']
@@ -445,22 +544,21 @@ async function syncRelationalTables(payload) {
     }
 
     // 3. Sync Parking Lots
-    const parkingLotsList = Array.isArray(payload.parkingData?.lots) ? payload.parkingData.lots : (Array.isArray(payload.parkingLots) ? payload.parkingLots : []);
-    if (parkingLotsList.length > 0) {
+    const parkingLotsList = Array.isArray(payload.parkingData?.lots) ? payload.parkingData.lots : (Array.isArray(payload.parkingLots) ? payload.parkingLots : null);
+    if (parkingLotsList !== null) {
       await pool.query('DELETE FROM parking_lots');
-      for (const p of parkingLotsList) {
+      for (const p of filterUniqueById(parkingLotsList)) {
         await pool.query(
-          `INSERT INTO parking_lots (id, name, type, total4w, filled4w, reserved4w, status) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [p.id, p.name || p.id, p.type || 'Multi-Level', p.total4w || 500, p.filled4w || 0, p.reserved4w || 0, p.status || 'OPEN']
+          `INSERT INTO parking_lots (id, name, type, total4w, filled4w, reserved4w, total2w, filled2w, reserved2w, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [p.id, p.name || p.id, p.type || 'Multi-Level', p.total4w || 500, p.filled4w || 0, p.reserved4w || 0, p.total2w || 200, p.filled2w || 0, p.reserved2w || 0, p.status || 'OPEN']
         );
       }
     }
 
     // 4. Sync Cab Bookings
-    const cabList = Array.isArray(payload.cabBookings) ? payload.cabBookings : [];
-    if (cabList.length > 0) {
+    if (Array.isArray(payload.cabBookings)) {
       await pool.query('DELETE FROM cab_bookings');
-      for (const c of cabList) {
+      for (const c of filterUniqueById(payload.cabBookings)) {
         await pool.query(
           `INSERT INTO cab_bookings (id, passengerName, mobile, pickupPoint, dropLocation, distanceKm, cabCategory, fare, status, timestamp)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -470,10 +568,10 @@ async function syncRelationalTables(payload) {
     }
 
     // 5. Sync Emergencies
-    const emList = Array.isArray(payload.emergencies) ? payload.emergencies : (Array.isArray(payload.emergencyAlerts) ? payload.emergencyAlerts : []);
-    if (emList.length > 0) {
+    const emList = Array.isArray(payload.emergencies) ? payload.emergencies : (Array.isArray(payload.emergencyAlerts) ? payload.emergencyAlerts : null);
+    if (emList !== null) {
       await pool.query('DELETE FROM emergencies');
-      for (const e of emList) {
+      for (const e of filterUniqueById(emList)) {
         await pool.query(
           `INSERT INTO emergencies (id, category, severity, title, location, responders, notes, status, timestamp)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -482,50 +580,59 @@ async function syncRelationalTables(payload) {
       }
     }
 
-    // 6. Sync Baggage
-    const bagList = Array.isArray(payload.baggage) ? payload.baggage : [];
-    if (bagList.length > 0) {
+    // 6. Sync Baggage (including JSON steps!)
+    if (Array.isArray(payload.baggage)) {
       await pool.query('DELETE FROM baggage');
-      for (const b of bagList) {
+      for (const b of filterUniqueById(payload.baggage)) {
         await pool.query(
-          `INSERT INTO baggage (id, tagId, pnr, flight, passenger, origin, destination, weight, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [b.id, b.tagId || b.id, b.pnr || '', b.flight || '', b.passenger || '', b.origin || '', b.destination || '', b.weight || '15kg', b.status || 'LOADED']
+          `INSERT INTO baggage (id, tagId, pnr, flight, passenger, origin, destination, weight, status, steps)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [b.id, b.tagId || b.id, b.pnr || '', b.flight || '', b.passenger || '', b.origin || '', b.destination || '', b.weight || '15kg', b.status || 'LOADED', JSON.stringify(b.steps || [])]
         );
       }
     }
 
     // 7. Sync Lost & Found Items
-    const lfList = Array.isArray(payload.lostFoundItems) ? payload.lostFoundItems : (Array.isArray(payload.lostFound) ? payload.lostFound : []);
-    if (lfList.length > 0) {
+    const lfList = Array.isArray(payload.lostFoundItems) ? payload.lostFoundItems : (Array.isArray(payload.lostFound) ? payload.lostFound : (Array.isArray(payload.lostAndFound) ? payload.lostAndFound : null));
+    if (lfList !== null) {
       await pool.query('DELETE FROM lost_found_items');
-      for (const l of lfList) {
+      for (const l of filterUniqueById(lfList)) {
         await pool.query(
-          `INSERT INTO lost_found_items (id, title, category, type, location, date, description, status, reporter, contactInfo)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [l.id, l.title || '', l.category || '', l.type || 'FOUND', l.location || '', l.date || '', l.description || '', l.status || 'OPEN', l.reporter || '', l.contactInfo || '']
+          `INSERT INTO lost_found_items (id, title, category, type, location, date, description, status, reporter, contactInfo, claimPending, pendingClaimant)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [l.id, l.title || '', l.category || '', l.type || 'FOUND', l.location || '', l.date || '', l.description || '', l.status || 'OPEN', l.reporter || '', l.contactInfo || '', l.claimPending ? 'true' : 'false', l.pendingClaimant || '']
+        );
+      }
+    }
+
+    // 7b. Sync Lost & Found Claim Appeals
+    if (Array.isArray(payload.lostFoundClaims)) {
+      await pool.query('DELETE FROM lost_found_claims');
+      for (const c of filterUniqueById(payload.lostFoundClaims)) {
+        await pool.query(
+          `INSERT INTO lost_found_claims (id, itemId, itemTitle, claimantName, claimantContact, flightNo, proofDetails, mediaUrl, mediaType, status, timestamp)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [c.id, c.itemId || '', c.itemTitle || '', c.claimantName || '', c.claimantContact || '', c.flightNo || '', c.proofDetails || '', c.mediaUrl || '', c.mediaType || '', c.status || 'PENDING_VERIFICATION', c.timestamp || '']
         );
       }
     }
 
     // 8. Sync Wheelchair Requests
-    const wcList = Array.isArray(payload.wheelchairRequests) ? payload.wheelchairRequests : [];
-    if (wcList.length > 0) {
+    if (Array.isArray(payload.wheelchairRequests)) {
       await pool.query('DELETE FROM wheelchair_requests');
-      for (const w of wcList) {
+      for (const w of filterUniqueById(payload.wheelchairRequests)) {
         await pool.query(
-          `INSERT INTO wheelchair_requests (id, passengerName, airlineName, pnrNumber, mobileNumber, timestamp, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [w.id, w.passengerName || '', w.airlineName || '', w.pnrNumber || '', w.mobileNumber || '', w.timestamp || new Date().toLocaleString(), w.status || 'PENDING']
+          `INSERT INTO wheelchair_requests (id, passengerName, airlineName, pnrNumber, mobileNumber, timestamp, status, pickupLocation)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [w.id, w.passengerName || '', w.airlineName || '', w.pnrNumber || '', w.mobileNumber || '', w.timestamp || new Date().toLocaleString(), w.status || 'PENDING', w.pickupLocation || '']
         );
       }
     }
 
     // 9. Sync Support Tickets
-    const ticketList = Array.isArray(payload.tickets) ? payload.tickets : [];
-    if (ticketList.length > 0) {
+    if (Array.isArray(payload.tickets)) {
       await pool.query('DELETE FROM tickets');
-      for (const t of ticketList) {
+      for (const t of filterUniqueById(payload.tickets)) {
         await pool.query(
           `INSERT INTO tickets (id, name, phone, email, location, category, urgency, description, status, adminReply, createdAt)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -534,24 +641,24 @@ async function syncRelationalTables(payload) {
       }
     }
 
-    // 10. Sync Fleet Vehicles
-    const fleetList = Array.isArray(payload.fleetVehicles) ? payload.fleetVehicles : (Array.isArray(payload.fleetHealth) ? payload.fleetHealth : []);
-    if (fleetList.length > 0) {
+    // 10. Sync Fleet Vehicles (matching app.js FleetHealthView fields!)
+    const fleetList = Array.isArray(payload.fleetVehicles) ? payload.fleetVehicles : (Array.isArray(payload.fleetHealth) ? payload.fleetHealth : null);
+    if (fleetList !== null) {
       await pool.query('DELETE FROM fleet_vehicles');
-      for (const v of fleetList) {
+      for (const v of filterUniqueById(fleetList)) {
         await pool.query(
-          `INSERT INTO fleet_vehicles (id, name, type, status, batteryPct, fuelPct, location, driver, healthScore)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [v.id, v.name || v.id, v.type || 'Electric Bus', v.status || 'IN_SERVICE', v.batteryPct || 90, v.fuelPct || 100, v.location || 'T3', v.driver || '', v.healthScore || 95]
+          `INSERT INTO fleet_vehicles (id, aircraft, flight, status, engine, hydraulic, tyre, brake, fuel, nextMaint)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [v.id, v.aircraft || v.name || v.id, v.flight || '', v.status || 'Airworthy', v.engine || '98%', v.hydraulic || '95%', v.tyre || 'Optimal', v.brake || 'Optimal', v.fuel || '95%', v.nextMaint || '']
         );
       }
     }
 
     // 11. Sync CCTV Cameras
-    const cctvList = Array.isArray(payload.cctv) ? payload.cctv : (Array.isArray(payload.cctvCameras) ? payload.cctvCameras : []);
-    if (cctvList.length > 0) {
+    const cctvList = Array.isArray(payload.cctv) ? payload.cctv : (Array.isArray(payload.cctvCameras) ? payload.cctvCameras : null);
+    if (cctvList !== null) {
       await pool.query('DELETE FROM cctv_cameras');
-      for (const c of cctvList) {
+      for (const c of filterUniqueById(cctvList)) {
         await pool.query(
           `INSERT INTO cctv_cameras (id, name, location, zone, resolution, status, aiMode, alerts, peopleCount, streamUrl)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -561,10 +668,10 @@ async function syncRelationalTables(payload) {
     }
 
     // 12. Sync Duty Roster
-    const rosterList = Array.isArray(payload.dutyRosters) ? payload.dutyRosters : (Array.isArray(payload.dutyRoster) ? payload.dutyRoster : []);
-    if (rosterList.length > 0) {
+    const rosterList = Array.isArray(payload.dutyRosters) ? payload.dutyRosters : (Array.isArray(payload.dutyRoster) ? payload.dutyRoster : null);
+    if (rosterList !== null) {
       await pool.query('DELETE FROM duty_rosters');
-      for (const r of rosterList) {
+      for (const r of filterUniqueById(rosterList)) {
         await pool.query(
           `INSERT INTO duty_rosters (id, userId, name, role, location, shift, status)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -574,10 +681,9 @@ async function syncRelationalTables(payload) {
     }
 
     // 13. Sync Audit Logs
-    const logList = Array.isArray(payload.auditLogs) ? payload.auditLogs : [];
-    if (logList.length > 0) {
+    if (Array.isArray(payload.auditLogs)) {
       await pool.query('DELETE FROM audit_logs');
-      for (const a of logList.slice(0, 100)) {
+      for (const a of filterUniqueById(payload.auditLogs.slice(0, 100))) {
         await pool.query(
           `INSERT INTO audit_logs (id, timestamp, actor, action, details) VALUES (?, ?, ?, ?, ?)`,
           [a.id || ('LOG-' + Math.random()), a.timestamp || new Date().toLocaleString(), a.actor || 'System', a.action || 'UPDATE', a.details || '']
@@ -585,24 +691,34 @@ async function syncRelationalTables(payload) {
       }
     }
 
-    // 14. Sync Parking Reservations (dedicated table — was missing before)
-    const parkResv = Array.isArray(payload.parkingData?.reservations) ? payload.parkingData.reservations : [];
-    if (parkResv.length > 0) {
+    // 14. Sync Parking Reservations
+    if (Array.isArray(payload.parkingData?.reservations)) {
       await pool.query('DELETE FROM parking_reservations');
-      for (const r of parkResv) {
+      for (const r of filterUniqueById(payload.parkingData.reservations)) {
         await pool.query(
-          `INSERT INTO parking_reservations (id, vehicleNumber, vehicleType, parkingLot, slotNumber, durationHours, amountPaid, paymentStatus, passengerName, mobile)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [r.id || ('RES-' + Date.now()), r.vehicleNumber || '', r.vehicleType || '4 Wheeler', r.parkingLot || '', r.slotNumber || '', parseInt(r.durationHours) || 4, parseFloat(r.amountPaid) || 0, r.paymentStatus || 'SUCCESS', r.passengerName || '', r.mobile || '']
+          `INSERT INTO parking_reservations (id, vehicleNumber, vehicleType, parkingLot, slotNumber, durationHours, amountPaid, paymentStatus, passengerName, mobile, startDate, paymentMode, terminal, qrCode)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [r.id || ('RES-' + Date.now()), r.vehicleNumber || '', r.vehicleType || '4 Wheeler', r.parkingLot || '', r.slotNumber || '', parseInt(r.durationHours) || 4, parseFloat(r.amountPaid) || 0, r.paymentStatus || 'SUCCESS', r.passengerName || '', r.mobile || '', r.startDate || '', r.paymentMode || '', r.terminal || 'T3', r.qrCode || '']
+        );
+      }
+    }
+
+    // 14b. Sync Parking Vehicle Logs
+    if (Array.isArray(payload.parkingData?.vehicleLogs)) {
+      await pool.query('DELETE FROM parking_vehicle_logs');
+      for (const vl of filterUniqueById(payload.parkingData.vehicleLogs)) {
+        await pool.query(
+          `INSERT INTO parking_vehicle_logs (id, timestamp, hoursAgo, vehicleNumber, vehicleType, parkingLot, eventType, gateId, cameraSensor, confidenceScore, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [vl.id || ('ANPR-' + Date.now()), vl.timestamp || '', parseFloat(vl.hoursAgo) || 0, vl.vehicleNumber || '', vl.vehicleType || '4 Wheeler', vl.parkingLot || '', vl.eventType || 'ENTRY', vl.gateId || '', vl.cameraSensor || '', vl.confidenceScore || '99%', vl.status || 'INSIDE']
         );
       }
     }
 
     // 15. Sync Staff Shifts
-    const shiftList = Array.isArray(payload.staffShifts) ? payload.staffShifts : [];
-    if (shiftList.length > 0) {
+    if (Array.isArray(payload.staffShifts)) {
       await pool.query('DELETE FROM staff_shifts');
-      for (const s of shiftList) {
+      for (const s of filterUniqueById(payload.staffShifts)) {
         await pool.query(
           `INSERT INTO staff_shifts (id, userId, name, role, shift, location, shiftDate, status)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -612,10 +728,9 @@ async function syncRelationalTables(payload) {
     }
 
     // 16. Sync Leave Applications
-    const leaveList = Array.isArray(payload.leaveApplications) ? payload.leaveApplications : [];
-    if (leaveList.length > 0) {
+    if (Array.isArray(payload.leaveApplications)) {
       await pool.query('DELETE FROM leave_applications');
-      for (const l of leaveList) {
+      for (const l of filterUniqueById(payload.leaveApplications)) {
         await pool.query(
           `INSERT INTO leave_applications (id, userId, applicantName, role, leaveType, fromDate, toDate, reason, status, appliedOn)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -625,10 +740,9 @@ async function syncRelationalTables(payload) {
     }
 
     // 17. Sync Attendance Logs
-    const attList = Array.isArray(payload.attendanceLogs) ? payload.attendanceLogs : [];
-    if (attList.length > 0) {
+    if (Array.isArray(payload.attendanceLogs)) {
       await pool.query('DELETE FROM attendance_logs');
-      for (const a of attList.slice(0, 200)) {
+      for (const a of filterUniqueById(payload.attendanceLogs.slice(0, 200))) {
         await pool.query(
           `INSERT INTO attendance_logs (id, userId, name, role, clockInDate, clockIn, clockOut, status)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -636,11 +750,6 @@ async function syncRelationalTables(payload) {
         );
       }
     }
-
-    // 18. Sync CCTV Cameras (also synced in block 11 via main syncRelationalTables — kept here for completeness)
-    // (handled already by block 11 above)
-
-    // 19. Sync Emergencies + Cab Bookings already handled in blocks 5 and 4 above.
 
   } catch (err) {
     console.warn('Relational sync notice:', err.message);
@@ -709,17 +818,24 @@ const server = http.createServer(async (req, res) => {
       let fullState = null;
 
       // Direct per-table reads for ALL synced modules
-      let fleetHealthRows = [];
-      let wheelchairRows = [];
-      let ticketRows = [];
-      let parkingResRows = [];
-      let cctvRows = [];
-      let emergencyRows = [];
-      let cabRows = [];
-      let dutyRosterRows = [];
-      let staffShiftRows = [];
-      let leaveAppRows = [];
-      let attendanceRows = [];
+      let fleetHealthRows = null;
+      let wheelchairRows = null;
+      let ticketRows = null;
+      let parkingResRows = null;
+      let parkingLotRows = null;
+      let vehicleLogsRows = null;
+      let cctvRows = null;
+      let emergencyRows = null;
+      let cabRows = null;
+      let dutyRosterRows = null;
+      let staffShiftRows = null;
+      let leaveAppRows = null;
+      let attendanceRows = null;
+      let flightRows = null;
+      let gateRows = null;
+      let baggageRows = null;
+      let lostFoundRows = null;
+      let lostFoundClaimsRows = null;
 
       if (pool) {
         try {
@@ -729,47 +845,89 @@ const server = http.createServer(async (req, res) => {
           if (Array.isArray(sRows) && sRows.length > 0 && sRows[0].payload) fullState = JSON.parse(sRows[0].payload);
         } catch (dbQueryErr) { console.warn('Wasmer MySQL query warning:', dbQueryErr.message); }
 
+        // ── Flights ───────────────────────────────────────────────────────────────
+        try { const [r] = await pool.query('SELECT * FROM flights ORDER BY scheduledTime ASC'); flightRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('flights:', e.message); }
+
+        // ── Gates ─────────────────────────────────────────────────────────────────
+        try { const [r] = await pool.query('SELECT * FROM gates ORDER BY id ASC'); gateRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('gates:', e.message); }
+
+        // ── Parking Lots ──────────────────────────────────────────────────────────
+        try { const [r] = await pool.query('SELECT * FROM parking_lots ORDER BY id ASC'); parkingLotRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('parking_lots:', e.message); }
+
+        // ── Parking Vehicle Movement Logs ─────────────────────────────────────────
+        try { const [r] = await pool.query('SELECT * FROM parking_vehicle_logs ORDER BY id DESC LIMIT 300'); vehicleLogsRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('parking_vehicle_logs:', e.message); }
+
+        // ── Baggage (parsing JSON steps!) ──────────────────────────────────────────
+        try {
+          const [r] = await pool.query('SELECT * FROM baggage ORDER BY id ASC');
+          baggageRows = Array.isArray(r) ? r.map(b => ({
+            ...b,
+            steps: b.steps ? (typeof b.steps === 'string' ? JSON.parse(b.steps) : b.steps) : []
+          })) : [];
+        } catch(e) { console.warn('baggage:', e.message); }
+
+        // ── Lost & Found Items ────────────────────────────────────────────────────
+        try {
+          const [r] = await pool.query('SELECT * FROM lost_found_items ORDER BY id DESC');
+          lostFoundRows = Array.isArray(r) ? r.map(l => ({
+            ...l,
+            claimPending: l.claimPending === 'true' || l.claimPending === true
+          })) : [];
+        } catch(e) { console.warn('lost_found_items:', e.message); }
+
+        // ── Lost & Found Claim Appeals ────────────────────────────────────────────
+        try { const [r] = await pool.query('SELECT * FROM lost_found_claims ORDER BY id DESC'); lostFoundClaimsRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('lost_found_claims:', e.message); }
+
         // ── Fleet Health ──────────────────────────────────────────────────────────
-        try { const [r] = await pool.query('SELECT * FROM fleet_vehicles ORDER BY id ASC'); if (Array.isArray(r) && r.length > 0) fleetHealthRows = r; } catch(e) { console.warn('fleet_vehicles:', e.message); }
+        try { const [r] = await pool.query('SELECT * FROM fleet_vehicles ORDER BY id ASC'); fleetHealthRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('fleet_vehicles:', e.message); }
 
         // ── Wheelchair Requests ───────────────────────────────────────────────────
-        try { const [r] = await pool.query('SELECT * FROM wheelchair_requests ORDER BY timestamp DESC'); if (Array.isArray(r) && r.length > 0) wheelchairRows = r; } catch(e) { console.warn('wheelchair_requests:', e.message); }
+        try { const [r] = await pool.query('SELECT * FROM wheelchair_requests ORDER BY timestamp DESC'); wheelchairRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('wheelchair_requests:', e.message); }
 
         // ── Support Tickets ───────────────────────────────────────────────────────
-        try { const [r] = await pool.query('SELECT * FROM tickets ORDER BY createdAt DESC'); if (Array.isArray(r) && r.length > 0) ticketRows = r; } catch(e) { console.warn('tickets:', e.message); }
+        try { const [r] = await pool.query('SELECT * FROM tickets ORDER BY createdAt DESC'); ticketRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('tickets:', e.message); }
 
         // ── Parking Reservations ──────────────────────────────────────────────────
-        try { const [r] = await pool.query('SELECT * FROM parking_reservations ORDER BY id DESC'); if (Array.isArray(r) && r.length > 0) parkingResRows = r; } catch(e) { console.warn('parking_reservations:', e.message); }
+        try { const [r] = await pool.query('SELECT * FROM parking_reservations ORDER BY id DESC'); parkingResRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('parking_reservations:', e.message); }
 
         // ── CCTV Cameras ──────────────────────────────────────────────────────────
-        try { const [r] = await pool.query('SELECT * FROM cctv_cameras ORDER BY id ASC'); if (Array.isArray(r) && r.length > 0) cctvRows = r; } catch(e) { console.warn('cctv_cameras:', e.message); }
+        try { const [r] = await pool.query('SELECT * FROM cctv_cameras ORDER BY id ASC'); cctvRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('cctv_cameras:', e.message); }
 
         // ── Emergencies ───────────────────────────────────────────────────────────
-        try { const [r] = await pool.query('SELECT * FROM emergencies ORDER BY timestamp DESC'); if (Array.isArray(r) && r.length > 0) emergencyRows = r; } catch(e) { console.warn('emergencies:', e.message); }
+        try { const [r] = await pool.query('SELECT * FROM emergencies ORDER BY timestamp DESC'); emergencyRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('emergencies:', e.message); }
 
         // ── Cab Bookings ──────────────────────────────────────────────────────────
-        try { const [r] = await pool.query('SELECT * FROM cab_bookings ORDER BY timestamp DESC'); if (Array.isArray(r) && r.length > 0) cabRows = r; } catch(e) { console.warn('cab_bookings:', e.message); }
+        try { const [r] = await pool.query('SELECT * FROM cab_bookings ORDER BY timestamp DESC'); cabRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('cab_bookings:', e.message); }
 
         // ── Duty Rosters ──────────────────────────────────────────────────────────
-        try { const [r] = await pool.query('SELECT * FROM duty_rosters ORDER BY id ASC'); if (Array.isArray(r) && r.length > 0) dutyRosterRows = r; } catch(e) { console.warn('duty_rosters:', e.message); }
+        try { const [r] = await pool.query('SELECT * FROM duty_rosters ORDER BY id ASC'); dutyRosterRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('duty_rosters:', e.message); }
 
         // ── Staff Shifts ──────────────────────────────────────────────────────────
-        try { const [r] = await pool.query('SELECT * FROM staff_shifts ORDER BY id ASC'); if (Array.isArray(r) && r.length > 0) staffShiftRows = r; } catch(e) { console.warn('staff_shifts:', e.message); }
+        try { const [r] = await pool.query('SELECT * FROM staff_shifts ORDER BY id ASC'); staffShiftRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('staff_shifts:', e.message); }
 
         // ── Leave Applications ────────────────────────────────────────────────────
-        try { const [r] = await pool.query('SELECT * FROM leave_applications ORDER BY appliedOn DESC'); if (Array.isArray(r) && r.length > 0) leaveAppRows = r; } catch(e) { console.warn('leave_applications:', e.message); }
+        try { const [r] = await pool.query('SELECT * FROM leave_applications ORDER BY appliedOn DESC'); leaveAppRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('leave_applications:', e.message); }
 
         // ── Attendance Logs ───────────────────────────────────────────────────────
-        try { const [r] = await pool.query('SELECT * FROM attendance_logs ORDER BY id DESC LIMIT 500'); if (Array.isArray(r) && r.length > 0) attendanceRows = r; } catch(e) { console.warn('attendance_logs:', e.message); }
+        try { const [r] = await pool.query('SELECT * FROM attendance_logs ORDER BY id DESC LIMIT 500'); attendanceRows = Array.isArray(r) ? r : []; } catch(e) { console.warn('attendance_logs:', e.message); }
       }
 
       if (users.length === 0) users = getDiskCsvUsers();
 
-      // Build merged response: individual table reads always take priority over system_state blob
+      const defaultParkingLots = [
+        { id: "MLCP-T3", name: "Multi-Level Car Parking (MLCP) - Terminal 3", type: "Multi-Level (Covered & EV Charging)", total4w: 4500, filled4w: 3120, reserved4w: 450, total2w: 2000, filled2w: 1240, reserved2w: 210, status: "OPEN" },
+        { id: "LOT-T1-A", name: "Surface Premium Lot - Terminal 1", type: "Open Surface (Valet & FastTag)", total4w: 1800, filled4w: 1450, reserved4w: 180, total2w: 1500, filled2w: 980, reserved2w: 150, status: "OPEN" },
+        { id: "LOT-T2", name: "Short-Term Express Lot - Terminal 2", type: "Surface Covered", total4w: 1200, filled4w: 920, reserved4w: 100, total2w: 800, filled2w: 510, reserved2w: 80, status: "OPEN" },
+        { id: "LOT-CARGO", name: "Commercial & Cargo Vehicle Yard", type: "Heavy Vehicle & Truck Yard", total4w: 800, filled4w: 410, reserved4w: 50, total2w: 300, filled2w: 110, reserved2w: 30, status: "OPEN" }
+      ];
+
+      // Build merged response: queried SQL rows take priority over system_state blob when queried
       const baseState = fullState || {};
       const mergedParkingData = {
         ...(baseState.parkingData || {}),
-        reservations: parkingResRows.length > 0 ? parkingResRows : (baseState.parkingData?.reservations || [])
+        lots: (parkingLotRows !== null && parkingLotRows.length > 0) ? parkingLotRows : ((baseState.parkingData && Array.isArray(baseState.parkingData.lots) && baseState.parkingData.lots.length > 0) ? baseState.parkingData.lots : defaultParkingLots),
+        reservations: parkingResRows !== null ? parkingResRows : (baseState.parkingData?.reservations || []),
+        vehicleLogs: vehicleLogsRows !== null ? vehicleLogsRows : (baseState.parkingData?.vehicleLogs || [])
       };
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -779,20 +937,28 @@ const server = http.createServer(async (req, res) => {
         users,
         fullState,
         ...baseState,
-        // All modules served fresh from dedicated tables (fallback to blob if table is empty):
-        fleetHealth:          fleetHealthRows.length > 0  ? fleetHealthRows  : (baseState.fleetHealth || []),
-        fleetVehicles:        fleetHealthRows.length > 0  ? fleetHealthRows  : (baseState.fleetVehicles || []),
-        wheelchairRequests:   wheelchairRows.length > 0   ? wheelchairRows   : (baseState.wheelchairRequests || []),
-        tickets:              ticketRows.length > 0        ? ticketRows       : (baseState.tickets || []),
+        // All modules served fresh from dedicated SQL tables:
+        fleetHealth:          fleetHealthRows !== null  ? fleetHealthRows  : (baseState.fleetHealth || []),
+        fleetVehicles:        fleetHealthRows !== null  ? fleetHealthRows  : (baseState.fleetVehicles || []),
+        wheelchairRequests:   wheelchairRows !== null   ? wheelchairRows   : (baseState.wheelchairRequests || []),
+        tickets:              ticketRows !== null       ? ticketRows       : (baseState.tickets || []),
         parkingData:          mergedParkingData,
-        cctv:                 cctvRows.length > 0          ? cctvRows         : (baseState.cctv || []),
-        cctvCameras:          cctvRows.length > 0          ? cctvRows         : (baseState.cctvCameras || []),
-        emergencies:          emergencyRows.length > 0     ? emergencyRows    : (baseState.emergencies || []),
-        cabBookings:          cabRows.length > 0           ? cabRows          : (baseState.cabBookings || []),
-        dutyRosters:          dutyRosterRows.length > 0   ? dutyRosterRows   : (baseState.dutyRosters || []),
-        staffShifts:          staffShiftRows.length > 0   ? staffShiftRows   : (baseState.staffShifts || []),
-        leaveApplications:    leaveAppRows.length > 0     ? leaveAppRows     : (baseState.leaveApplications || []),
-        attendanceLogs:       attendanceRows.length > 0   ? attendanceRows   : (baseState.attendanceLogs || [])
+        parkingLots:          mergedParkingData.lots,
+        cctv:                 cctvRows !== null         ? cctvRows         : (baseState.cctv || []),
+        cctvCameras:          cctvRows !== null         ? cctvRows         : (baseState.cctvCameras || []),
+        emergencies:          emergencyRows !== null    ? emergencyRows    : (baseState.emergencies || []),
+        cabBookings:          cabRows !== null          ? cabRows          : (baseState.cabBookings || []),
+        dutyRosters:          dutyRosterRows !== null   ? dutyRosterRows   : (baseState.dutyRosters || []),
+        staffShifts:          staffShiftRows !== null   ? staffShiftRows   : (baseState.staffShifts || []),
+        leaveApplications:    leaveAppRows !== null     ? leaveAppRows     : (baseState.leaveApplications || []),
+        attendanceLogs:       attendanceRows !== null   ? attendanceRows   : (baseState.attendanceLogs || []),
+        flights:              flightRows !== null       ? flightRows       : (baseState.flights || []),
+        gates:                gateRows !== null         ? gateRows         : (baseState.gates || []),
+        baggage:              baggageRows !== null      ? baggageRows      : (baseState.baggage || []),
+        lostFoundItems:       lostFoundRows !== null    ? lostFoundRows    : (baseState.lostFoundItems || []),
+        lostFound:            lostFoundRows !== null    ? lostFoundRows    : (baseState.lostFound || []),
+        lostAndFound:         lostFoundRows !== null    ? lostFoundRows    : (baseState.lostAndFound || []),
+        lostFoundClaims:      lostFoundClaimsRows !== null ? lostFoundClaimsRows : (baseState.lostFoundClaims || [])
       }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -845,24 +1011,27 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      if (pool && payload && typeof payload === 'object') {
-        try {
-          // Save relational tables into Wasmer MySQL
-          await syncRelationalTables(payload);
-
-          // Save main state JSON payload as secondary backup
-          const payloadStr = JSON.stringify(payload);
-          await pool.query(
-            "INSERT INTO system_state (id, payload, updated_at) VALUES ('main_state', ?, NOW()) ON DUPLICATE KEY UPDATE payload=VALUES(payload), updated_at=NOW()",
-            [payloadStr]
-          );
-        } catch (sysErr) {
-          console.warn("Wasmer system_state save warning:", sysErr.message);
-        }
-      }
-
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ success: true, message: "Wasmer DB state synced successfully", syncedAt: new Date().toISOString() }));
+      res.end(JSON.stringify({ success: true, message: "Wasmer DB state synced successfully", syncedAt: new Date().toISOString() }));
+
+      if (pool && payload && typeof payload === 'object') {
+        (async () => {
+          try {
+            // Save relational tables into Wasmer MySQL
+            await syncRelationalTables(payload);
+
+            // Save main state JSON payload as secondary backup
+            const payloadStr = JSON.stringify(payload);
+            await pool.query(
+              "INSERT INTO system_state (id, payload, updated_at) VALUES ('main_state', ?, NOW()) ON DUPLICATE KEY UPDATE payload=VALUES(payload), updated_at=NOW()",
+              [payloadStr]
+            );
+          } catch (sysErr) {
+            console.warn("Wasmer system_state save warning:", sysErr.message);
+          }
+        })();
+      }
+      return;
     } catch (err) {
       console.error("Wasmer DB /api/sync error:", err.message);
       res.writeHead(500, { 'Content-Type': 'application/json' });
